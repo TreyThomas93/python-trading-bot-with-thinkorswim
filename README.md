@@ -254,6 +254,7 @@
 > DATABASE
 
 - MongoDB Atlas -- Approx. $60 / month
+- I use the M10 tier, which is the lowest production tier there is, but you may be able to get away with lower tiers that are set prices, which are alot cheaper.
 
 > NOTIFICATION SYSTEM
 
