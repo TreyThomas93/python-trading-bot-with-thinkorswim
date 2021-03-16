@@ -232,6 +232,12 @@
 
 - Obviously, results are based off of how good your strategies that are developed in Thinkorswim are.
 
+#### Simulated Results
+
+- These results are simulated, which means they bought and sold everytime an alert came through from the emails. This is basically paper trading, but through the program. It would represent what it would be like with no buying power limit. This is based off of 1 share trades. Most of these strategies have been running since October 2020. As you can see, the program is affective, but obviously results may vary depending on how good your strategies are and also how much money you have to trade with.
+
+![Simulated Results](assets/img/sim_results.PNG)
+
 ### <a name="discrepencies"></a> DISCREPENCIES
 
 - This program is not perfect. I am not liable for any profits or losses.
