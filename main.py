@@ -169,10 +169,10 @@ class Main:
 
     def updateSystemInfo(self):
 
-        system = list(main.mongo.system.find({}))[0]
-
-        main.mongo.system.update_one({"_id": ObjectId(system["_id"])}, {"$set": {
-                                     "Threads_Running": threading.active_count()}})
+        system = list(self.mongo.system.find({}))[0]
+        
+        self.mongo.system.update_one({"_id": ObjectId(system["_id"])}, {"$set": {
+                                     "Threads_Running": threading.active_count(), "Last_Updated" : getDatetime()}})
 
 
 if __name__ == "__main__":
