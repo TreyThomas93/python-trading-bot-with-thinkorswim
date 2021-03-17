@@ -259,8 +259,8 @@
 
 > DATABASE
 
-- MongoDB Atlas -- Approx. $60 / month
-- I use the M10 tier, but you may be able to get away with lower tiers that are set prices, which are alot cheaper.
+- MongoDB Atlas -- Approx. $25 / month
+- I currently use the M5 tier.
 
 ![Mongo Tiers](assets/img/cluster-tier.png)
 
