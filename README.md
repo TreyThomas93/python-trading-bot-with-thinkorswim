@@ -5,21 +5,22 @@
 - This program is an automated trading bot that uses TDAmeritrades Thinkorswim trading platform's scanners and alerts system.
 
 ## Table Of Contents
+
 - [How it works](#how-it-works)
 
 - [Dependencies](#dependencies)
 
 - [Setup](#setup)
 
-    - [MongoDB](#mongo)
-    - [Gmail](#gmail)
-    - [Pushsafer](#pushsafer)
-    - [TDA API Tokens](#tokens)
-    - [Thinkorswim](#thinkorswim)
+  - [MongoDB](#mongo)
+  - [Gmail](#gmail)
+  - [Pushsafer](#pushsafer)
+  - [TDA API Tokens](#tokens)
+  - [Thinkorswim](#thinkorswim)
 
-        - [Scanner Names](#scanner-names)
-        - [Scanner Offset](#scanner-offset)
-        - [Scanner Alerts](#alerts)
+    - [Scanner Names](#scanner-names)
+    - [Scanner Offset](#scanner-offset)
+    - [Scanner Alerts](#alerts)
 
 - [Results](#results)
 
@@ -27,8 +28,9 @@
 
 - [What I Use and Costs](#what-i-use-and-costs)
 
-- [Final Thoughts and Support](#final-thoughts-and-support)
+- [Code Counter](#code-counter)
 
+- [Final Thoughts and Support](#final-thoughts-and-support)
 
 ## <a name="how-it-works"></a> How it works (in a nutshell)
 
@@ -267,6 +269,37 @@
 > NOTIFICATION SYSTEM
 
 - PushSafer -- Less than $5 / month
+
+### <a name="code-counter"></a> CODE COUNTER
+
+> Total : 15 files, 2235 codes, 440 comments, 1228 blanks, all 3903 lines
+
+Total : 15 files, 2259 codes, 440 comments, 1235 blanks, all 3934 lines
+
+## Languages
+
+| language | files |  code | comment | blank | total |
+| :------- | ----: | ----: | ------: | ----: | ----: |
+| Python   |    12 | 1,417 |     440 | 1,112 | 2,969 |
+| JSON     |     1 |   626 |       0 |     1 |   627 |
+| Markdown |     1 |   193 |       0 |   118 |   311 |
+| toml     |     1 |    23 |       0 |     4 |    27 |
+
+## Directories
+
+| path                     | files |  code | comment | blank | total |
+| :----------------------- | ----: | ----: | ------: | ----: | ----: |
+| .                        |    15 | 2,259 |     440 | 1,235 | 3,934 |
+| assets                   |     5 |   111 |      43 |    92 |   246 |
+| assets\exception_handler |     1 |    17 |       1 |    17 |    35 |
+| assets\logger            |     1 |    50 |      36 |    44 |   130 |
+| assets\push_notification |     1 |    37 |       5 |    24 |    66 |
+| gmail                    |     1 |   147 |      36 |   120 |   303 |
+| live_trader              |     1 |   298 |     103 |   212 |   613 |
+| mongo                    |     1 |    33 |       0 |    30 |    63 |
+| sim_trader               |     1 |   232 |      65 |   225 |   522 |
+| tasks                    |     1 |   346 |      69 |   232 |   647 |
+| tdameritrade             |     1 |   144 |      85 |   114 |   343 |
 
 ### <a name="final-thoughts-and-support"></a> FINAL THOUGHTS
 
