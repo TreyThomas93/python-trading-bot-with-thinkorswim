@@ -272,30 +272,28 @@
 
 ### <a name="code-counter"></a> CODE COUNTER
 
-> Total : 15 files, 2235 codes, 440 comments, 1228 blanks, all 3903 lines
+Total : 15 files, 2290 codes, 440 comments, 1239 blanks, all 3969 lines
 
-Total : 15 files, 2259 codes, 440 comments, 1235 blanks, all 3934 lines
-
-## Languages
+#### Languages
 
 | language | files |  code | comment | blank | total |
 | :------- | ----: | ----: | ------: | ----: | ----: |
-| Python   |    12 | 1,417 |     440 | 1,112 | 2,969 |
-| JSON     |     1 |   626 |       0 |     1 |   627 |
+| Python   |    12 | 1,423 |     440 | 1,116 | 2,979 |
+| JSON     |     1 |   650 |       0 |     1 |   651 |
 | Markdown |     1 |   193 |       0 |   118 |   311 |
-| toml     |     1 |    23 |       0 |     4 |    27 |
+| toml     |     1 |    24 |       0 |     4 |    28 |
 
-## Directories
+#### Directories
 
 | path                     | files |  code | comment | blank | total |
 | :----------------------- | ----: | ----: | ------: | ----: | ----: |
-| .                        |    15 | 2,259 |     440 | 1,235 | 3,934 |
+| .                        |    15 | 2,290 |     440 | 1,239 | 3,969 |
 | assets                   |     5 |   111 |      43 |    92 |   246 |
 | assets\exception_handler |     1 |    17 |       1 |    17 |    35 |
 | assets\logger            |     1 |    50 |      36 |    44 |   130 |
 | assets\push_notification |     1 |    37 |       5 |    24 |    66 |
 | gmail                    |     1 |   147 |      36 |   120 |   303 |
-| live_trader              |     1 |   298 |     103 |   212 |   613 |
+| live_trader              |     1 |   304 |     103 |   218 |   625 |
 | mongo                    |     1 |    33 |       0 |    30 |    63 |
 | sim_trader               |     1 |   232 |      65 |   225 |   522 |
 | tasks                    |     1 |   346 |      69 |   232 |   647 |
