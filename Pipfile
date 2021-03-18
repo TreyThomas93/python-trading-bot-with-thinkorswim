@@ -8,6 +8,7 @@ pylint = "*"
 bandit = "*"
 pandas = "*"
 tabulate = "*"
+autopep8 = "*"
 
 [packages]
 google-api-python-client = "*"
