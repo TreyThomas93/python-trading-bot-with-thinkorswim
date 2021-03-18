@@ -401,15 +401,21 @@ class LiveTrader(Tasks):
             obj["Date"] = getDatetime()
 
             # ADD TO OPEN POSITIONS
-            is_inserted = self.open_positions.insert_one(obj)
-
             try:
 
-                if not is_inserted.is_valid(is_inserted):
+                self.open_positions.insert_one(obj)
 
-                    self.logger.ERROR(f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
+            except writeConcernError:
 
-                    self.open_positions.insert_one(obj)
+                self.logger.ERROR(f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
+
+                self.open_positions.insert_one(obj)
+
+            except writeError:
+
+                self.logger.ERROR(f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
+
+                self.open_positions.insert_one(obj)
 
             except Exception:
 
@@ -468,15 +474,21 @@ class LiveTrader(Tasks):
             msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Buy Price: ${position['Buy_Price']} \n Buy Date: {position['Date']} \n Sell Price: ${price} \n Sell Date: {getDatetime()} \n Strategy: {strategy} \n Aggregation: {aggregation} \n ROV: {rov}% \n Sold For: {sold_for} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n"
 
             # ADD TO CLOSED POSITIONS
-            is_inserted = self.closed_positions.insert_one(obj)
-
             try:
 
-                if not is_inserted.is_valid(is_inserted):
+                self.closed_positions.insert_one(obj)
 
-                    self.logger.ERROR(f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
+            except writeConcernError:
 
-                    self.closed_positions.insert_one(obj)
+                self.logger.ERROR(f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
+
+                self.closed_positions.insert_one(obj)
+
+            except writeError:
+
+                self.logger.ERROR(f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
+
+                self.closed_positions.insert_one(obj)
 
             except Exception:
 
