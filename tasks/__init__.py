@@ -280,117 +280,6 @@ class Tasks:
                 "Closed_Position_Strategies": obj
             })
 
-    @exception_handler
-    def checkPositionDiscrepancies(self):
-        """ METHOD CHECKS ALL OPEN POSITIONS IN BOTH MONGODB AND TDAMERITRADE ACCOUNT AND COMPARES OPEN POSITIONS 
-            AND THEIR SHARES TO MAKE SURE THEY ALL MATCH UP CORRECTLY.
-        """
-        open_positions = list(self.open_positions.find(
-            {"Trader": self.user["Name"], "Asset_Type": self.asset_type, "Account_ID": self.account_id}))
-
-        account = self.tdameritrade.getAccount()
-
-        tda_positions = account["securitiesAccount"]["positions"]
-
-        # CHECK IF POSITION QUANTITIES ARE THE SAME BETWEEN MONGO AND TDA #####
-        positions = {}
-
-        for position in open_positions:
-
-            if self.asset_type == "EQUITY":
-
-                symbol = position["Symbol"]
-
-            elif self.asset_type == "OPTION":
-
-                symbol = position["Pre_Symbol"]
-
-            qty = position["Qty"]
-
-            if symbol not in positions:
-
-                positions[symbol] = 0
-
-            positions[symbol] += qty
-
-        for symbol, qty in positions.items():
-
-            for position in tda_positions:
-
-                tda_symbol = position["instrument"]["symbol"]
-
-                tda_qty = int(position["longQuantity"])
-
-                if tda_symbol == symbol:
-
-                    if tda_qty != qty:
-
-                        msg = f"INCONSISTENT QUANTITIES: SYMBOL {symbol} - TRADER {self.user['Name']} - ACCOUNT ID: {self.account_id}"
-
-                        if symbol not in self.alert_sent:
-
-                            self.alert_sent.append(symbol)
-
-                            self.logger.ERROR(msg)
-
-                    else:
-
-                        if symbol in self.alert_sent:
-
-                            self.alert_sent.remove(symbol)
-
-        #############################################################################
-
-        # CHECK IF SAME SYMBOLS IN BOTH MONGO AND TDA POSITIONS
-        mongo_positions = []
-
-        for position in open_positions:
-
-            if self.asset_type == "EQUITY":
-
-                symbol = position["Symbol"]
-
-            elif self.asset_type == "OPTION":
-
-                symbol = position["Pre_Symbol"]
-
-            if symbol not in mongo_positions:
-
-                mongo_positions.append(symbol)
-
-        tda_positions = [position["instrument"]["symbol"]
-                            for position in tda_positions if position["instrument"]["assetType"] == self.asset_type]
-
-        # IF MORE MONGO SYMBOLS THAN TDA SYMBOLS, REMOVE POSITIONS FROM MONGO OPEN POSITIONS
-        for symbol in mongo_positions:
-
-            if symbol not in tda_positions:
-
-                # self.open_positions.delete_many({"Trader": self.user["Name"], "Symbol": symbol, "Asset_Type" : self.asset_type}) THIS IS TEMPORARY!
-
-                msg = f"{symbol} FOUND IN MONGO POSITIONS BUT NOT IN TDA POSITIONS. TRADER: {self.user['Name']} - ASSET TYPE: {self.asset_type} - ACCOUNT ID: {self.account_id}"
-
-                self.logger.ERROR(msg)
-
-        # IF MORE TDA SYMBOLS THAN MONGO SYMBOLS, SEND ALERT
-        for symbol in tda_positions:
-
-            if symbol not in mongo_positions:
-
-                if symbol not in self.inconsistent_list:
-
-                    self.inconsistent_list.append(symbol)
-
-                    msg = f"{symbol} FOUND IN TDA POSITIONS BUT NOT IN MONGO POSITIONS. TRADER: {self.user['Name']} - ASSET TYPE: {self.asset_type} - ACCOUNT ID: {self.account_id}"
-
-                    self.logger.ERROR(msg)
-
-            else:
-
-                if symbol in self.inconsistent_list:
-
-                    self.inconsistent_list.remove(symbol)
-
     # KILL QUEUE ORDER IF SITTING IN QUEUE GREATER THAN 2 HOURS
     @exception_handler
     def killQueueOrder(self):
@@ -700,23 +589,6 @@ class Tasks:
 
                     self.midnight = False
 
-                # IF ON THE HOUR, CHECK POSITION DESCREPANCIES
-                # on_the_hour = dt_central.time().strftime("%M")
-
-                # if on_the_hour == "00":
-
-                #     if not self.on_the_hour:
-
-                        # self.checkPositionDiscrepancies() TEMPORARY
-
-                #         self.checkPositionDiscrepancies()
-
-                #         self.on_the_hour = True
-
-                # else:
-
-                #     self.on_the_hour = False
-
                 # RUN TASKS ####################################################
 
                 if self.asset_type == "OPTION":
@@ -757,7 +629,6 @@ class Tasks:
                 else:
 
                     self.eleven_check = False
-
 
             except KeyError:
 

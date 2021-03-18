@@ -401,7 +401,19 @@ class LiveTrader(Tasks):
             obj["Date"] = getDatetime()
 
             # ADD TO OPEN POSITIONS
-            self.open_positions.insert_one(obj)
+            is_inserted = self.open_positions.insert_one(obj)
+
+            try:
+
+                if not is_inserted.is_valid(is_inserted):
+
+                    self.logger.ERROR(f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
+
+                    self.open_positions.insert_one(obj)
+
+            except Exception:
+
+                self.logger.ERROR()
 
             msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Aggregation: {aggregation} \n Date: {getDatetime()} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n"
 
@@ -455,15 +467,40 @@ class LiveTrader(Tasks):
 
             msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Buy Price: ${position['Buy_Price']} \n Buy Date: {position['Date']} \n Sell Price: ${price} \n Sell Date: {getDatetime()} \n Strategy: {strategy} \n Aggregation: {aggregation} \n ROV: {rov}% \n Sold For: {sold_for} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n"
 
-            self.logger.INFO(
-                f"{order_type} ORDER For {symbol} - TRADER: {self.user['Name']}", True)
-
             # ADD TO CLOSED POSITIONS
-            self.closed_positions.insert_one(obj)
+            is_inserted = self.closed_positions.insert_one(obj)
+
+            try:
+
+                if not is_inserted.is_valid(is_inserted):
+
+                    self.logger.ERROR(f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
+
+                    self.closed_positions.insert_one(obj)
+
+            except Exception:
+
+                self.logger.ERROR()
 
             # REMOVE FROM OPEN POSITIONS
-            self.open_positions.delete_one(
+            is_removed = self.open_positions.delete_one(
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Asset_Type": self.asset_type})
+
+            try:
+
+                if int(is_removed.deleted_count) == 0:
+
+                    self.logger.ERROR(f"INITIAL FAIL OF DELETING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
+
+                    self.open_positions.delete_one(
+                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Asset_Type": self.asset_type})
+                
+            except Exception:
+
+                self.logger.ERROR()
+
+            self.logger.INFO(
+                f"{order_type} ORDER For {symbol} - TRADER: {self.user['Name']}", True)
 
         # REMOVE FROM QUEUE
         self.queue.delete_one({"Trader": self.user["Name"], "Symbol": symbol,
