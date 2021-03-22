@@ -52,14 +52,9 @@
 
 - This is setup for both EQUITY and OPTIONS trading, but I have not traded OPTIONS on this as of yet.
 
-- Flow
-  1. Alert from Gmail is received.
-  2. Data from alert is stripped of needed info.
-  3. If buy order, then open positions in Mongo is checked for any open positions with the same symbol and strategy.
-  4. If nothing found, a buy order is placed.
-  5. Same goes for sell order.
-  6. If sell order, then open positions in Mongo is checked for open position with same symbol and strategy.
-  7. If found, then sell order is placed.
+- Program Flow Chart
+  
+  ![Program Flow Chart](assets/img/program_flow_chart.png)
 
 ## <a name="dependencies"></a> Dependencies
 
