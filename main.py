@@ -76,6 +76,8 @@ class Main:
 
                             self.traders[account_id] = obj
 
+                            time.sleep(0.1)
+
                         else:
 
                             self.not_connected.append(account_id)

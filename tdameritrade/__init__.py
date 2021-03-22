@@ -43,7 +43,7 @@ class TDAmeritrade:
         if isValid:
 
             self.logger.INFO(
-                f"CONNECTED {self.user['Name']} TO TDAMERITRADE ({self.account_id})\n")
+                f"CONNECTED {self.user['Name']} TO TDAMERITRADE ({self.account_id})")
 
             return True
 

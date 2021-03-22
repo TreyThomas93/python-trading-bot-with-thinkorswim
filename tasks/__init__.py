@@ -520,7 +520,7 @@ class Tasks:
         """
 
         self.logger.INFO(
-            f"STARTING TASKS FOR TRADER {self.user['Name']} - ACCOUNT ID: {self.account_id}")
+            f"STARTING TASKS FOR TRADER {self.user['Name']} - ACCOUNT ID: {self.account_id}\n")
 
         def selectSleep():
             """
