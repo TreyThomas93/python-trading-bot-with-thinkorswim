@@ -358,6 +358,47 @@ class Tasks:
 
                     self.no_ids_list.remove(order["Symbol"])
     
+    # SELL OUT MARKET OPEN IF SELL ORDERS IN QUEUE
+    @exception_handler
+    def sellAtMarketOpen(self):
+        """ METHOD CHECKS QUEUE FOR SELL ORDERS, CANCELS THOSE ORDERS, AND RESELLS AT MARKET OPEN WITH MARKET ORDER
+        """
+
+        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
+
+        dt_central = dt.astimezone(pytz.timezone('US/Central'))
+
+        day = dt_central.strftime("%a")
+
+        tm = dt_central.strftime("%H:%M:%S")
+
+        weekdays = ["Sat", "Sun"]
+
+        # CHECK IF MARKET OPEN AND NOT WEEKEND
+        if tm == "08:30"  and day not in weekdays:
+
+            queue_orders = self.mongo.queue.find(
+                {"Trader": self.user["Name"], "Account_ID": self.account_id, "Order_Type" : "SELL"})
+
+            for order in queue_orders:
+
+                # CANCEL ORDER
+                resp = self.tdameritrade.cancelOrder(order["Order_ID"])
+
+                if resp.status_code == 200 or resp.status_code == 201:
+
+                    trade_data = {
+                        "Symbol": order["Symbol"],
+                        "Side": "SELL",
+                        "Aggregation": order["Aggregation"],
+                        "Strategy": order["Strategy"],
+                        "Asset_Type": order["Asset_Type"],
+                        "Account_ID": self.account_id
+                    }
+
+                    # SELL MARKET ORDER
+                    self.placeOrder(trade_data, order, orderType="MARKET")
+
     # SELL END OF DAY STOCK
     @exception_handler
     def sellOutStrategies(self, strategies):
@@ -598,6 +639,8 @@ class Tasks:
                 self.checkTrailingStop()
 
                 self.killQueueOrder()
+
+                self.sellAtMarketOpen()
 
                 dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
