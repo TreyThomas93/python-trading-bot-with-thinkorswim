@@ -239,7 +239,7 @@
 
 ### <a name="share-your-strategy-results"></a> Share Your Strategy Results!
 
-- If you want to help contribute to the community by sharing your simulated strategy results with the world, then all you have to do is uncomment out the following block of code located in the sellOut method in the SimTrader class in the code.
+- If you want to help contribute to the community by sharing your simulated strategy results with the world, then all you have to do is uncomment out the following block of code located in the sellOrder method in the SimTrader class in the code.
 
 ![Strategy Result Code](assets/img/send-strategy-result.PNG)
 

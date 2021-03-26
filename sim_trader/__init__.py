@@ -108,9 +108,9 @@ class SimTrader():
                 {"Symbol": symbol, "Strategy": strategy})
 
             # SEND STRATEGY RESULT (IF YOU WANT TO)
-            email = "JohnDoe123@email.com"
+            # email = "JohnDoe123@email.com"
 
-            self.sendStrategyResult(email, obj)
+            # self.sendStrategyResult(email, obj)
 
         except Exception as e:
 
