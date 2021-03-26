@@ -24,6 +24,8 @@
 
 - [Results](#results)
 
+- [Share Your Strategy Results](#share-your-strategy-results)
+
 - [Discrepencies](#discrepencies)
 
 - [What I Use and Costs](#what-i-use-and-costs)
@@ -53,7 +55,7 @@
 - This is setup for both EQUITY and OPTIONS trading, but I have not traded OPTIONS on this as of yet.
 
 - Program Flow Chart
-  
+
   ![Program Flow Chart](assets/img/program_flow_chart.png)
 
 ## <a name="dependencies"></a> Dependencies
@@ -234,6 +236,20 @@
 - These results are simulated, which means they bought and sold everytime an alert came through from the emails. This is basically paper trading, but through the program. It would represent what it would be like with no buying power limit. This is based off of 1 share trades. Most of these strategies have been running since October 2020. As you can see, the program is affective, but obviously results may vary depending on how good your strategies are and also how much money you have to trade with.
 
 ![Simulated Results](assets/img/sim_results.PNG)
+
+### <a name="share-your-strategy-results"></a> Share Your Strategy Results!
+
+- If you want to help contribute to the community by sharing your simulated strategy results with the world, then all you have to do is uncomment out the following block of code located in the sellOut method in the SimTrader class in the code.
+
+![Strategy Result Code](assets/img/send-strategy-result.PNG)
+
+- Just insert your email address into the variable called email, and everytime a simulated position sells out, it will be sent to a server to be displayed in a web app.
+
+- The web app will grade each strategy based on average ROV, profit loss, wins, losses, win rate percentage, max drawdown, and sharpe ratio.
+
+- This is strictly **VOLUNTARY**.
+
+- The web app url is https://605e52f13b173a0008e6efef--goofy-yonath-bdedbd.netlify.app/Dashboard
 
 ### <a name="discrepencies"></a> DISCREPENCIES
 
