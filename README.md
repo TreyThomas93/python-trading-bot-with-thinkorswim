@@ -314,6 +314,8 @@ Total : 15 files, 2290 codes, 440 comments, 1239 blanks, all 3969 lines
 
 - This is in continous development, with hopes to make this program as good as it can possibly get. I know this README might not do it justice with giving you all the information you may need, and you most likely will have questions. Therefore, don't hesitate to contact me either via Github or email. As for you all, I would like your input on how to improve this, and I also heavily encourage you to fork the code and send me your improvements. I appreciate all the support! Thanks, Trey.
 
+- > *DISCORD GROUP* - I have created a Discord group to allow for a more interactive enviroment that will allow for all of us to answer questions and talk about the program.  <a href="https://discord.gg/ys5jWuSE">Discord Group</a>
+
 - If you like backtesting with Thinkorswim, here's a [repo](https://github.com/TreyThomas93/TOS-Auto-Export) of mine that may help you export strategy reports alot faster.
 
 - Also, If you like what I have to offer, please support me here!

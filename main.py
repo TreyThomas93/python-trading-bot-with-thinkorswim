@@ -218,15 +218,15 @@ if __name__ == "__main__":
 
     # UPDATE SYSTEM RUN DATETIME FIELD TO CURRENT DATETIME
     # THIS TELLS US WHEN THE SYSTEM FIRST STARTED UP
-    system = list(main.mongo.system.find({}))[0]
+    #system = list(main.mongo.system.find({}))[0]
 
-    main.mongo.system.update_one({"_id": ObjectId(system["_id"])}, {
-                                 "$set": {"Run_Start": getDatetime()}})
+    #main.mongo.system.update_one({"_id": ObjectId(system["_id"])}, {
+                                 #"$set": {"Run_Start": getDatetime()}})
     
     while True:
 
         main.run()
 
-        main.updateSystemInfo()
+        # main.updateSystemInfo()
         
         time.sleep(selectSleep())
