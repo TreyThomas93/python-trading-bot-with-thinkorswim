@@ -455,6 +455,14 @@ class LiveTrader(Tasks):
                             
                             self.placeOrder(data)
 
+                    elif open_position:
+
+                        self.logger.INFO(f"Symbol {symbol} with strategy {strategy} already an open position")
+
+                    elif queued:
+
+                        self.logger.INFO(f"Symbol {symbol} with strategy {strategy} already in queue")
+
                 # SELL ##############################
                 elif side == "SELL":
 

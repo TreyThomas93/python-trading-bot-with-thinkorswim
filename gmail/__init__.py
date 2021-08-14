@@ -123,23 +123,25 @@ class Gmail():
 
                             symbols = sep[0].strip().split(",")
 
-                            strategy, side, account_id = sep[1].strip().split(
-                                ",")
+                            strategy, side, *account_ids = sep[1].strip().split(",")
 
-                            account_id = account_id.replace(".", " ")
+                            account_ids = [int(account_id.replace(".", " ").strip()) for account_id in account_ids]
 
                             for symbol in symbols:
 
-                                if strategy != "" and side != "" and account_id != "":
+                                if strategy != "" and side != "" and len(account_ids) > 0:
 
-                                    obj = {
-                                        "Symbol": symbol.strip(),
-                                        "Side": side.upper().strip(),
-                                        "Strategy": strategy.replace(".", " ").strip(),
-                                        "Account_ID": int(account_id.strip())
-                                    }
+                                    # ITERATE OVER LIST OF ACCOUNT IDS FOR THIS PARTICULAR STRATEGY AND SYMBOL 
+                                    for account_id in account_ids:
 
-                                    trade_data.append(obj)
+                                        obj = {
+                                            "Symbol": symbol.strip(),
+                                            "Side": side.upper().strip(),
+                                            "Strategy": strategy.replace(".", " ").strip(),
+                                            "Account_ID": account_id
+                                        }
+
+                                        trade_data.append(obj)
 
                                 else:
 
@@ -150,13 +152,17 @@ class Gmail():
 
                     self.logger.INFO(f"NEW EMAIL: {payload}")
 
-            except Exception as e:
+            except IndexError:
 
-                exception_type = type(e).__name__
+                pass
 
-                if exception_type != "IndexError":
+            except ValueError:
 
-                    self.logger.ERROR()
+                self.logger.ERROR(error=f"EMAIL FORMAT ERROR: {payload}")
+
+            except Exception:
+
+                self.logger.ERROR()
 
         return trade_data
 

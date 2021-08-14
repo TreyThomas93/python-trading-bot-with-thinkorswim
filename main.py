@@ -155,7 +155,7 @@ class Main:
         for live_trader in self.traders.values():
 
             if len(trade_data) > 0:
-
+                
                 live_trader.runTrader(trade_data)
 
                 # if not sim_went: # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
@@ -211,4 +211,4 @@ if __name__ == "__main__":
 
             main.run()
             
-            time.sleep(selectSleep())
+            time.sleep(5)
