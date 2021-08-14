@@ -30,6 +30,16 @@ def exception_handler(func):
 
         except Exception:
 
-            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']}")
+            class_name = self.__class__.__name__
+
+            acceptable_classes = ["Tasks", "LiveTrader"]
+
+            if class_name in acceptable_classes:
+
+                logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
+
+            else:
+
+                logger.ERROR(f"CLASSNAME: {class_name}")
 
     return wrapper

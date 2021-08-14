@@ -1,5 +1,5 @@
 import colorama
-from termcolor import colored
+from pprint import pprint
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
@@ -17,13 +17,20 @@ class MongoDB:
 
     def __init__(self, logger):
 
+        self.logger = logger
+
+    def connect(self):
+
         try:
 
-            logger.INFO("CONNECTING TO MONGO...")
+            self.logger.INFO("CONNECTING TO MONGO...")
 
             if MONGO_URI != None:
 
                 self.client = MongoClient(MONGO_URI, authSource="admin")
+
+                # SIMPLE TEST OF CONNECTION BEFORE CONTINUING
+                self.client.server_info()
 
                 self.db = self.client["Live_Trader"]
 
@@ -41,22 +48,18 @@ class MongoDB:
 
                 self.logs = self.db["logs"]
 
-                self.emails = self.db["emails"]
-
-                self.system = self.db["system"]
-
                 self.balance_history = self.db["balance_history"]
 
                 self.open_positions_history = self.db["open_positions_history"]
 
                 self.closed_positions_history = self.db["closed_positions_history"]
 
-                logger.INFO("CONNECTED TO MONGO!\n")
+                self.logger.INFO("CONNECTED TO MONGO!\n")
 
             else:
 
                 raise Exception("MONGO URI IS NONETYPE")
 
         except Exception:
-
-            logger.CRITICAL("FAILED TO CONNECT TO MONGO!")
+            
+            self.logger.CRITICAL("FAILED TO CONNECT TO MONGO!")

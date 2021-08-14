@@ -41,104 +41,6 @@ class Tasks:
         self.eleven_check = False
 
     @exception_handler
-    def updateAccountBalance(self):
-        """ METHOD UPDATES USERS ACCOUNT BALANCE IN MONGODB
-        """
-        account = self.tdameritrade.getAccount()
-
-        liquidation_value = float(
-            account["securitiesAccount"]["currentBalances"]["liquidationValue"])
-
-        available_for_trading = float(
-            account["securitiesAccount"]["currentBalances"]["cashAvailableForTrading"])
-
-        self.users.update_one({"Name": self.user["Name"]}, {"$set": {
-                                f"Accounts.{self.account_id}.Account_Balance": liquidation_value, f"Accounts.{self.account_id}.Available_For_Trading": available_for_trading}})
-
-    @exception_handler
-    def updateLastPrice(self):
-        """ METHOD UPDATES LAST PRICE FOR EACH SYMBOL IN OPEN POSITIONS/QUEUED
-        """
-        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-        dt_central = dt.astimezone(
-            pytz.timezone('US/Central')).strftime("%H:%M")
-
-        # UPDATE POSITION LAST PRICE AND UPDATE HIGH PRICE
-        open_positions = self.open_positions.find(
-            {"Trader": self.user["Name"], "Asset_Type": self.asset_type, "Account_ID": self.account_id})
-
-        open_positions_list = []
-
-        for position in open_positions:
-
-            symbol = position["Symbol"]
-
-            if symbol not in open_positions_list:
-
-                open_positions_list.append(symbol)
-
-        if len(open_positions_list) > 0:
-
-            resp = self.tdameritrade.getQuotes(open_positions_list)
-
-            if resp:
-
-                for key, value in resp.items():
-
-                    symbol = key
-
-                    last_price = value["lastPrice"]
-
-                    self.open_positions.update_many({"Trader": self.user["Name"], "Symbol": symbol, "Asset_Type": self.asset_type, "Account_ID": self.account_id}, {
-                                                    "$set": {"Last_Price": last_price}})
-
-                    if dt_central == "15:00":
-
-                        self.open_positions.update_many({"Trader": self.user["Name"], "Symbol": symbol, "Asset_Type": self.asset_type, "Account_ID": self.account_id}, {
-                                                        "$set": {"Opening_Price": last_price}})
-
-        # UPDATE QUEUE LAST PRICE
-        queues = self.queue.find(
-            {"Trader": self.user["Name"], "Asset_Type": self.asset_type})
-
-        queues_list = []
-
-        for queue in queues:
-
-            if self.asset_type == "EQUITY":
-
-                symbol = queue["Symbol"]
-
-            elif self.asset_type == "OPTION":
-
-                symbol = queue["Pre_Symbol"]
-
-            if symbol not in queues_list:
-
-                queues_list.append(symbol)
-
-        if len(queues_list) > 0:
-
-            resp = self.tdameritrade.getQuotes(queues_list)
-
-            for key, value in resp.items():
-
-                symbol = key
-
-                last_price = value["lastPrice"]
-
-                if self.asset_type == "EQUITY":
-
-                    self.queue.update_many({"Trader": self.user["Name"], "Symbol": symbol, "Asset_Type": self.asset_type, "Account_ID": self.account_id}, {
-                                            "$set": {"Last_Price": last_price}})
-
-                elif self.asset_type == "OPTION":
-
-                    self.queue.update_many({"Trader": self.user["Name"], "Pre_Symbol": symbol, "Asset_Type": self.asset_type, "Account_ID": self.account_id}, {
-                                            "$set": {"Last_Price": last_price}})
-
-    @exception_handler
     def getDatetimeSplit(self):
 
         dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
@@ -358,189 +260,6 @@ class Tasks:
 
                     self.no_ids_list.remove(order["Symbol"])
     
-    # SELL OUT MARKET OPEN IF SELL ORDERS IN QUEUE
-    @exception_handler
-    def sellAtMarketOpen(self):
-        """ METHOD CHECKS QUEUE FOR SELL ORDERS, CANCELS THOSE ORDERS, AND RESELLS AT MARKET OPEN WITH MARKET ORDER
-        """
-
-        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-        dt_central = dt.astimezone(pytz.timezone('US/Central'))
-
-        day = dt_central.strftime("%a")
-
-        tm = dt_central.strftime("%H:%M:%S")
-
-        weekdays = ["Sat", "Sun"]
-
-        # CHECK IF MARKET OPEN AND NOT WEEKEND
-        if tm == "08:30"  and day not in weekdays:
-
-            queue_orders = self.mongo.queue.find(
-                {"Trader": self.user["Name"], "Account_ID": self.account_id, "Order_Type" : "SELL"})
-
-            for order in queue_orders:
-
-                # CANCEL ORDER
-                resp = self.tdameritrade.cancelOrder(order["Order_ID"])
-
-                if resp.status_code == 200 or resp.status_code == 201:
-
-                    trade_data = {
-                        "Symbol": order["Symbol"],
-                        "Side": "SELL",
-                        "Aggregation": order["Aggregation"],
-                        "Strategy": order["Strategy"],
-                        "Asset_Type": order["Asset_Type"],
-                        "Account_ID": self.account_id
-                    }
-
-                    # SELL MARKET ORDER
-                    self.placeOrder(trade_data, order, orderType="MARKET")
-
-    # SELL END OF DAY STOCK
-    @exception_handler
-    def sellOutStrategies(self, strategies):
-        """ METHOD SELLS OUT ANY OPEN POSITIONS THAT HAVE A PARTICULAR STRATEGY.
-
-        Args:
-            strategies ([list]): LIST OF STRATEGIES.
-        """
-
-        # GET ALL SECONDARY_AGG POSITIONS AND SELL THEM
-        open_positions = self.open_positions.find(
-            {"Trader": self.user["Name"], "$or": strategies, "Asset_Type": self.asset_type, "Account_ID" : self.account_id})
-
-        for position in open_positions:
-
-            trade_data = {
-                "Symbol": position["Symbol"],
-                "Side": "SELL",
-                "Aggregation": position["Aggregation"],
-                "Strategy": position["Strategy"],
-                "Asset_Type": position["Asset_Type"],
-                "Account_ID": self.account_id
-            }
-
-            queued = self.queue.find_one(
-                {"Trader": self.user["Name"], "Symbol": position["Symbol"], "Strategy": position["Strategy"], "Asset_Type": position["Asset_Type"], "Account_ID" : self.account_id})
-
-            if not queued:
-
-                self.placeOrder(trade_data, position, orderType="MARKET")
-
-    # SELL ALL STOCK
-    @exception_handler
-    def sellOutAllStock(self):
-        """ METHOD SELLS OUT ALL OPEN POSITIONS. THIS IS IN CASE OF CATASTROPHIC FAILURE OR STOCK MARKET CRASH.
-        """
-        # GET ALL POSITIONS FOR ACCOUNT
-        open_positions = self.open_positions.find({"Trader": self.user["Name"], "Asset_Type" : self.asset_type, "Account_ID" : self.account_id})
-
-        for position in open_positions:
-
-            trade_data = {
-                "Symbol": position["Symbol"],
-                "Side": "SELL",
-                "Aggregation": position["Aggregation"],
-                "Strategy": position["Strategy"],
-                "Asset_Type": position["Asset_Type"],
-                "Account_ID": self.account_id
-            }
-
-            queued = self.queue.find_one(
-                {"Trader": self.user["Name"], "Symbol": position["Symbol"], "Strategy": position["Strategy"], "Asset_Type": position["Asset_Type"], "Account_ID" : self.account_id})
-
-            if not queued:
-
-                self.placeOrder(trade_data, position, orderType="MARKET")
-
-    # SELL OUT OF OPTIONS IF EXP DATE REACHED
-    @exception_handler
-    def sellOutOptions(self):
-        """ METHOD SELLS OUT OPTIONS IF ONE DAY BEFORE EXPIRATION
-        """
-
-        open_positions = self.open_positions.find(
-            {"Trader": self.user["Name"], "Asset_Type": "OPTION"})
-
-        dt = getDatetime()
-
-        for position in open_positions:
-
-            day_before = (position["Exp_Date"] -
-                            timedelta(days=1)).strftime("%Y-%m-%d")
-
-            if day_before == dt.strftime("%Y-%m-%d"):
-
-                trade_data = {
-                    "Symbol": position["Symbol"],
-                    "Pre_Symbol": position["Pre_Symbol"],
-                    "Side": "SELL_TO_CLOSE",
-                    "Aggregation": position["Aggregation"],
-                    "Strategy": position["Strategy"],
-                    "Asset_Type": position["Asset_Type"],
-                    "Exp_Date": position["Exp_Date"]
-                }
-
-                self.placeOrder(trade_data, position)
-
-    # CHECKS IF PRICE HAS DROPPED 5% OF HIGH
-    @exception_handler
-    def checkTrailingStop(self):
-        """ METHOD CHECKS TO SEE IF LAST PRICE OF STOCK HAS DROPPED 5% OF HIGHEST PRICE OF STOCK SINCE BUY.
-            IF DROP BELOW 5%, THEN THE POSITION SELLS.
-        """
-        open_positions = self.open_positions.find(
-            {"Trader": self.user["Name"], "Asset_Type": self.asset_type, "Account_ID": self.account_id})
-
-        for position in open_positions:
-
-            last_price = position["Last_Price"]
-
-            high_price = position["High_Price"]
-
-            five_percent = round(high_price * 0.95, 2)
-
-            if last_price > high_price:
-
-                self.open_positions.update_one({"Trader": self.user["Name"], "Symbol": position["Symbol"], "Strategy": position["Strategy"], "Asset_Type": self.asset_type}, {
-                                                "$set": {"High_Price": last_price}})
-
-            # CHECK IF LAST PRICE < 5% OF HIGH PRICE
-            elif last_price < five_percent and self.user["Accounts"][self.account_id]["Trailing_Stop_Active"]:
-
-                queued = self.queue.find_one(
-                    {"Trader": self.user["Name"], "Symbol": position["Symbol"], "Strategy": position["Strategy"], "Asset_Type": self.asset_type})
-
-                # IF TRUE AND NOT IN QUEUE, SELL OUT POSITION
-                if not queued:
-
-                    trade_data = {
-                        "Symbol": position["Symbol"],
-                        "Aggregation": position["Aggregation"],
-                        "Strategy": position["Strategy"],
-                        "Asset_Type": position["Asset_Type"],
-                        "Account_ID": self.account_id
-                    }
-
-                    trade_data["Side"] = "SELL"
-
-                    if self.asset_type == "OPTION":
-
-                        trade_data["Exp_Date"] = position["Exp_Date"]
-
-                        trade_data["Pre_Symbol"] = position["Pre_Symbol"]
-
-                        trade_data["Side"] = "SELL_TO_CLOSE"
-
-                    self.placeOrder(trade_data, position)
-
-                    msg = f"Symbol {position['Symbol']} is selling due to 5% drop of high price - TRADER: {self.user['Name']}"
-
-                    self.logger.INFO(msg)
-
     # ADD NEW STRATEGIES TO OBJECT
     @exception_handler
     def updateStrategiesObject(self, strategy):
@@ -550,7 +269,7 @@ class Tasks:
             strategy ([str]): STRATEGY NAME
         """
 
-        # IF STRATEGY DOESNT EXIST IN OBJECT, THEN ADD IT AND SET DEFAULT TO 1 SHARE AD ACTIVE
+        # IF STRATEGY DOESNT EXIST IN OBJECT, THEN ADD IT AND SET DEFAULT TO 1 SHARE AND ACTIVE STATUS
         self.users.update(
             {"Name": self.user["Name"], f"Accounts.{self.account_id}.Strategies.{strategy}": {"$exists": False}}, {
                 "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": {"Shares": 1, "Active": True}}}
@@ -603,10 +322,6 @@ class Tasks:
 
                 self.asset_type = self.user["Accounts"][self.account_id]["Asset_Type"]
 
-                self.updateAccountBalance()
-
-                self.updateLastPrice()
-
                 dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
                 dt_central = dt.astimezone(pytz.timezone('US/Central'))
@@ -631,47 +346,7 @@ class Tasks:
                     self.midnight = False
 
                 # RUN TASKS ####################################################
-
-                if self.asset_type == "OPTION":
-
-                    self.sellOutOptions()
-
-                self.checkTrailingStop()
-
                 self.killQueueOrder()
-
-                self.sellAtMarketOpen()
-
-                dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-                dt_central = dt.astimezone(pytz.timezone('US/Central'))
-
-                # SELL ALL SECONDARY_AGG, SEC_AGG_V2 POSITIONS AT END OF DAY
-                if dt_central.strftime("%H:%M") == "14:55" and self.asset_type == "EQUITY":
-
-                    if not self.market_close_check:
-
-                        self.sellOutStrategies([{"Strategy": "Secondary_Agg"},
-                                        {"Strategy": "Sec_Agg_v2"}])
-
-                        self.market_close_check = True
-
-                else:
-
-                    self.market_close_check = False
-
-                # SELL ALL Sec_Agg_Daytrade AT 14:30
-                if dt_central.strftime("%H:%M") == "14:30" and self.asset_type == "EQUITY":
-
-                    if not self.eleven_check:
-
-                        self.sellOutStrategies([{"Strategy": "Sec_Aggressive"}])
-
-                        self.eleven_check = True
-
-                else:
-
-                    self.eleven_check = False
 
             except KeyError:
 

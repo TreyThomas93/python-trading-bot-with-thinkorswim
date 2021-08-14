@@ -1,26 +1,20 @@
 # imports
 import pytz
-from pprint import pprint
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 from live_trader import LiveTrader
 from sim_trader import SimTrader
 from gmail import Gmail
 from mongo import MongoDB
 import os
-import threading
-from bson.objectid import ObjectId
 from assets.push_notification import PushNotification
-from assets.current_datetime import getDatetime
 from assets.logger import Logger
-import traceback
-import sys
 from tdameritrade import TDAmeritrade
+from assets.exception_handler import exception_handler
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 assets = os.path.join(THIS_FOLDER, 'assets')
-
 
 class Main:
 
@@ -34,22 +28,29 @@ class Main:
         # CONNECT TO MONGO
         self.mongo = MongoDB(self.logger)
 
+        mongo_connected = self.mongo.connect()
+
         # CONNECT TO GMAIL API
         self.gmail = Gmail(self.mongo, self.logger)
 
-        # SET GMAIL AND MONGO ATTRIBUTE FOR LOGGER
-        self.logger.gmail = self.gmail
+        gmail_connected = self.gmail.connect()
 
-        self.logger.mongo = self.mongo
+        if mongo_connected and gmail_connected:
 
-        self.traders = {}
+            # SET GMAIL AND MONGO ATTRIBUTE FOR LOGGER
+            self.logger.gmail = self.gmail
 
-        self.accounts = []
+            self.logger.mongo = self.mongo
 
-        self.sim_trader = SimTrader(self.mongo)
+            self.traders = {}
 
-        self.not_connected = []
+            self.accounts = []
 
+            self.sim_trader = SimTrader(self.mongo)
+
+            self.not_connected = []
+
+    @exception_handler
     def setupTraders(self):
         """ METHOD GETS ALL USERS ACCOUNTS FROM MONGO AND CREATES LIVE TRADER INSTANCES FOR THOSE ACCOUNTS.
             IF ACCOUNT INSTANCE ALREADY IN SELF.TRADERS DICT, THEN ACCOUNT INSTANCE WILL NOT BE CREATED AGAIN.
@@ -88,6 +89,7 @@ class Main:
 
             self.logger.ERROR()
 
+    @exception_handler
     def checkTradersAndAccounts(self):
         """ METHOD COMPARES THE CURRENT TOTAL TRADERS TO CURRENT TOTAL ACCOUNTS IN MONGO.
             IF CURRENT TRADERS > CURRENT ACCOUNTS, MEANING AN ACCOUNT WAS REMOVED, THEN REMOVE THAT INSTANCE FROM SELF.TRADERS DICT
@@ -116,6 +118,7 @@ class Main:
 
             self.logger.ERROR()
 
+    @exception_handler
     def terminateNeeded(self):
 
         """ METHOD ITERATES THROUGH INSTANCES AND FIND ATTRIBUTE NAMED TERMINATE AND CHECKS IF TRUE.
@@ -140,6 +143,7 @@ class Main:
 
             self.logger.ERROR()
 
+    @exception_handler
     def run(self):
         """ METHOD RUNS THE TWO METHODS ABOVE AND THEN RUNS LIVE TRADER METHOD RUNTRADER FOR EACH INSTANCE.
         """
@@ -168,14 +172,7 @@ class Main:
         except Exception:
 
             self.logger.ERROR()
-
-    def updateSystemInfo(self):
-
-        system = list(self.mongo.system.find({}))[0]
-        
-        self.mongo.system.update_one({"_id": ObjectId(system["_id"])}, {"$set": {
-                                     "Threads_Running": threading.active_count(), "Last_Updated" : getDatetime()}})
-
+    
 
 if __name__ == "__main__":
     """ START OF SCRIPT.
@@ -215,18 +212,9 @@ if __name__ == "__main__":
         return 5
 
     main = Main()
+    # main.run()
+    while False:
 
-    # UPDATE SYSTEM RUN DATETIME FIELD TO CURRENT DATETIME
-    # THIS TELLS US WHEN THE SYSTEM FIRST STARTED UP
-    #system = list(main.mongo.system.find({}))[0]
-
-    #main.mongo.system.update_one({"_id": ObjectId(system["_id"])}, {
-                                 #"$set": {"Run_Start": getDatetime()}})
-    
-    while True:
-
-        main.run()
-
-        # main.updateSystemInfo()
+        # main.run()
         
         time.sleep(selectSleep())
