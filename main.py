@@ -11,6 +11,7 @@ from assets.push_notification import PushNotification
 from assets.logger import Logger
 from tdameritrade import TDAmeritrade
 from assets.exception_handler import exception_handler
+from pprint import pprint
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,7 +19,7 @@ assets = os.path.join(THIS_FOLDER, 'assets')
 
 class Main:
 
-    def __init__(self):
+    def connectAll(self):
         """ METHOD INITIALIZES LOGGER, MONGO, GMAIL, EXCEPTION HOOK, ECT.
         """
 
@@ -31,7 +32,7 @@ class Main:
         mongo_connected = self.mongo.connect()
 
         # CONNECT TO GMAIL API
-        self.gmail = Gmail(self.mongo, self.logger)
+        self.gmail = Gmail(self.logger)
 
         gmail_connected = self.gmail.connect()
 
@@ -49,6 +50,10 @@ class Main:
             self.sim_trader = SimTrader(self.mongo)
 
             self.not_connected = []
+
+            return True
+
+        return False
 
     @exception_handler
     def setupTraders(self):
@@ -73,7 +78,7 @@ class Main:
                         if connected:
                             
                             obj = LiveTrader(user, self.mongo, PushNotification(
-                                user["deviceID"], self.logger, self.gmail), self.logger, account_id, info["Asset_Type"], tdameritrade)
+                                user["deviceID"], self.logger, self.gmail), self.logger, int(account_id), tdameritrade)
 
                             self.traders[account_id] = obj
 
@@ -95,28 +100,23 @@ class Main:
             IF CURRENT TRADERS > CURRENT ACCOUNTS, MEANING AN ACCOUNT WAS REMOVED, THEN REMOVE THAT INSTANCE FROM SELF.TRADERS DICT
 
         """
-        try:
 
-            if len(self.traders) > len(self.accounts):
+        if len(self.traders) > len(self.accounts):
 
-                self.logger.INFO(
-                    f"CURRENT TOTAL TRADERS: {len(self.traders)} - CURRENT TOTAL ACCOUNTS: {len(self.accounts)}")
+            self.logger.INFO(
+                f"CURRENT TOTAL TRADERS: {len(self.traders)} - CURRENT TOTAL ACCOUNTS: {len(self.accounts)}")
 
-                accounts_to_remove = self.traders.keys() - set(self.accounts)
+            accounts_to_remove = self.traders.keys() - set(self.accounts)
 
-                for account in accounts_to_remove:
+            for account in accounts_to_remove:
 
-                    self.traders[account].isAlive = False
+                self.traders[account].isAlive = False
 
-                    del self.traders[account]
+                del self.traders[account]
 
-                    self.logger.INFO(f"ACCOUNT ID {account} REMOVED")
+                self.logger.INFO(f"ACCOUNT ID {account} REMOVED")
 
             self.accounts.clear()
-
-        except Exception:
-
-            self.logger.ERROR()
 
     @exception_handler
     def terminateNeeded(self):
@@ -125,55 +125,45 @@ class Main:
             IF TRUE, REMOVE FROM SELF.TRADERS AND STOP TASKS
         """
 
-        try:
+        traders = self.traders.copy()
 
-            traders = self.traders.copy()
+        for account_id, info in traders.items():
 
-            for account_id, info in traders.items():
+            if info.tdameritrade.terminate:
 
-                if info.tdameritrade.terminate:
+                info.isAlive = False
 
-                    info.isAlive = False
+                del self.traders[account_id]
 
-                    del self.traders[account_id]
-
-                    self.logger.INFO(f"ACCOUNT ID {account_id} REMOVED")
-
-        except Exception:
-
-            self.logger.ERROR()
-
+                self.logger.INFO(f"ACCOUNT ID {account_id} REMOVED")
+   
     @exception_handler
     def run(self):
         """ METHOD RUNS THE TWO METHODS ABOVE AND THEN RUNS LIVE TRADER METHOD RUNTRADER FOR EACH INSTANCE.
         """
-        try:
 
-            sim_went = False
+        sim_went = False
 
-            self.setupTraders()
+        self.setupTraders()
 
-            self.checkTradersAndAccounts()
+        self.checkTradersAndAccounts()
 
-            self.terminateNeeded()
+        self.terminateNeeded()
 
-            trade_data = self.gmail.getEmails()
+        trade_data = self.gmail.getEmails()
+        
+        for live_trader in self.traders.values():
 
-            for live_trader in self.traders.values():
+            if len(trade_data) > 0:
 
                 live_trader.runTrader(trade_data)
 
-                if not sim_went: # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
+                # if not sim_went: # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
 
-                    self.sim_trader.runTrader(trade_data, live_trader.tdameritrade)
+                #     self.sim_trader.runTrader(trade_data, live_trader.tdameritrade)
 
-                    sim_went = True
-
-        except Exception:
-
-            self.logger.ERROR()
+                #     sim_went = True
     
-
 if __name__ == "__main__":
     """ START OF SCRIPT.
         INITIALIZES MAIN CLASS AND RUNS RUN METHOD ON WHILE LOOP WITH A SLEEP TIME THAT VARIES FROM 5 SECONDS TO 60 SECONDS.
@@ -212,9 +202,13 @@ if __name__ == "__main__":
         return 5
 
     main = Main()
-    # main.run()
-    while False:
 
-        # main.run()
-        
-        time.sleep(selectSleep())
+    connected = main.connectAll()
+
+    if connected:
+
+        while True:
+
+            main.run()
+            
+            time.sleep(selectSleep())

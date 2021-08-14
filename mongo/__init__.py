@@ -56,6 +56,8 @@ class MongoDB:
 
                 self.logger.INFO("CONNECTED TO MONGO!\n")
 
+                return True
+
             else:
 
                 raise Exception("MONGO URI IS NONETYPE")
@@ -63,3 +65,5 @@ class MongoDB:
         except Exception:
             
             self.logger.CRITICAL("FAILED TO CONNECT TO MONGO!")
+
+            return False

@@ -22,27 +22,27 @@ THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 class Gmail():
 
-    def __init__(self, mongo, logger):
+    def __init__(self, logger):
+
+        self.logger = logger
+
+        self.SCOPES = ["https://mail.google.com/"]
+
+        self.creds = None
+
+        self.service = None
+
+        self.token_file = f"{THIS_FOLDER}/creds/token.json"
+
+        self.creds_file = f"{THIS_FOLDER}/creds/credentials.json"
+
+    def connect(self):
         """ METHOD SETS ATTRIBUTES AND CONNECTS TO GMAIL API
 
         Args:
             mongo ([object]): MONGODB OBJECT
             logger ([object]): LOGGER OBJECT
         """
-
-        self.SCOPES = ["https://mail.google.com/"]
-
-        self.logger = logger
-
-        self.creds = None
-
-        self.service = None
-
-        self.users = mongo.users
-
-        self.token_file = f"{THIS_FOLDER}/creds/token.json"
-
-        self.creds_file = f"{THIS_FOLDER}/creds/credentials.json"
 
         try:
 
@@ -77,6 +77,8 @@ class Gmail():
 
                 self.logger.INFO("CONNECTED TO GMAIL!\n")
 
+                return True
+
             else:
 
                 raise Exception("Creds Not Found!")
@@ -84,6 +86,8 @@ class Gmail():
         except Exception as e:
             print(e)
             self.logger.CRITICAL("FAILED TO CONNECT TO GMAIL!\n")
+
+            return False
 
     def extractSymbolsFromEmails(self, payloads):
         """ METHOD TAKES SUBJECT LINES OF THE EMAILS WITH THE SYMBOLS AND SCANNER NAMES AND EXTRACTS THE NEEDED THE INFO FROM THEM.
@@ -98,8 +102,8 @@ class Gmail():
 
         trade_data = []
 
-        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, 1h, EQUITY, PRIMARY
-        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, 1h, EQUITY, SECONDARY
+        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
+        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
 
         for payload in payloads:
 
@@ -132,7 +136,7 @@ class Gmail():
                                         "Symbol": symbol.strip(),
                                         "Side": side.upper().strip(),
                                         "Strategy": strategy.replace(".", " ").strip(),
-                                        "Account_ID": account_id.strip()
+                                        "Account_ID": int(account_id.strip())
                                     }
 
                                     trade_data.append(obj)

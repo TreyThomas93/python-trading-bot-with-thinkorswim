@@ -1,9 +1,4 @@
 from assets.current_datetime import getDatetime
-import time
-from pprint import pprint
-from datetime import datetime, timedelta
-import pytz
-from tdameritrade import TDAmeritrade
 from tasks import Tasks
 from threading import Thread
 from assets.exception_handler import exception_handler
@@ -11,7 +6,7 @@ from assets.exception_handler import exception_handler
 
 class LiveTrader(Tasks):
 
-    def __init__(self, user, mongo, push, logger, account_id, asset_type, tdameritrade):
+    def __init__(self, user, mongo, push, logger, account_id, tdameritrade):
         """
         Args:
             user ([dict]): [USER DATA FOR CURRENT INSTANCE]
@@ -26,10 +21,6 @@ class LiveTrader(Tasks):
         self.mongo = mongo
 
         self.account_id = account_id
-
-        self.asset_type = asset_type
-
-        self.limit_offset = 0  # FOR LIMIT ORDER OFFSET
 
         self.user = user
 
@@ -55,7 +46,7 @@ class LiveTrader(Tasks):
 
     # STEP ONE
     @exception_handler
-    def placeOrder(self, trade_data, position_data=None, orderType="LIMIT"):
+    def placeOrder(self, trade_data, position_data=None):
         """ METHOD IS USED TO PLACE TRADES (BUY/SELL ORDER).
 
         Args:
@@ -67,61 +58,15 @@ class LiveTrader(Tasks):
 
         side = trade_data["Side"]
 
-        aggregation = trade_data["Aggregation"]
-
         strategy = trade_data["Strategy"]
-
-        asset_type = trade_data["Asset_Type"]
 
         resp = self.tdameritrade.getQuote(symbol)
 
-        if asset_type == "EQUITY":
-
-            price = float(resp[symbol]["lastPrice"])
-
-            if orderType == "LIMIT":
-
-                duration = "GOOD_TILL_CANCEL"
-
-                session = "SEAMLESS"
-
-            else:
-
-                duration = "DAY"
-
-                session = "NORMAL"
-
-            if side == "BUY":
-
-                price = price + (price * self.limit_offset)
-
-            elif side == "SELL":
-
-                price = price - (price * self.limit_offset)
-
-            if price < 1:
-
-                price = round(price, 4)
-
-            else:
-
-                price = round(price, 2)
-
-        elif asset_type == "OPTION":
-
-            price = round(float(resp[symbol]["mark"]), 2)
-
-            duration = "DAY"
-
-            session = "NORMAL"
-
-            symbol = trade_data["Pre_Symbol"]
-
         order = {
-            "orderType": orderType,
-            "session": session,
-            "price": price,
-            "duration": duration,
+            "orderType": "LIMIT",
+            "price": float(resp[symbol]["lastPrice"]),
+            "session": "SEAMLESS",
+            "duration": "GOOD_TILL_CANCEL",
             "orderStrategyType": "SINGLE",
             "orderLegCollection": [
                 {
@@ -129,26 +74,20 @@ class LiveTrader(Tasks):
                     "quantity": None,
                     "instrument": {
                         "symbol": symbol,
-                        "assetType": asset_type
+                        "assetType": "EQUITY"
                     }
                 }
             ]
         }
-
-        if orderType == "MARKET":
-
-            del order["price"]
 
         obj = {
             "Symbol": symbol,
             "Qty": None,
             "Date": getDatetime(),
             "Strategy": strategy,
-            "Aggregation": aggregation,
             "Trader": self.user["Name"],
             "Order_ID": None,
             "Order_Status": None,
-            "Asset_Type": asset_type,
             "Order_Type": side,
             "Account_ID": self.account_id
         }
@@ -156,7 +95,7 @@ class LiveTrader(Tasks):
         if side == "BUY" or side == "BUY_TO_OPEN":
 
             # GET SHARES FOR PARTICULAR STRATEGY
-            strategies = self.user["Accounts"][self.account_id]["Strategies"]
+            strategies = self.user["Accounts"][str(self.account_id)]["Strategies"]
 
             shares = int(strategies[strategy]["Shares"])
 
@@ -164,21 +103,7 @@ class LiveTrader(Tasks):
 
             if active_strategy and shares > 0:
 
-                if asset_type == "EQUITY":
-
-                    min_price = self.user["Accounts"][self.account_id]["Price_Range"]["Min"]
-
-                    max_price = self.user["Accounts"][self.account_id]["Price_Range"]["Max"]
-
-                    if price < min_price or price > max_price:
-
-                        return
-
                 order["orderLegCollection"][0]["quantity"] = shares
-
-                obj["Limit_Price"] = price
-
-                obj["Last_Price"] = price
 
                 obj["Qty"] = shares
 
@@ -196,19 +121,11 @@ class LiveTrader(Tasks):
 
             order["orderLegCollection"][0]["quantity"] = buy_qty
 
-            obj["Limit_Price"] = price
-
             obj["Buy_Price"] = buy_price
 
             obj["Buy_Date"] = buy_date
 
             obj["Qty"] = buy_qty
-
-        if asset_type == "OPTION":
-
-            obj["Pre_Symbol"] = trade_data["Pre_Symbol"]
-
-            obj["Exp_Date"] = trade_data["Exp_Date"]
 
         # PLACE ORDER ################################################
 
@@ -225,25 +142,13 @@ class LiveTrader(Tasks):
                 "Order_Type": side,
                 "Order_Status": "REJECTED",
                 "Strategy": strategy,
-                "Aggregation": aggregation,
                 "Trader": self.user["Name"],
                 "Date": getDatetime(),
-                "Asset_Type": asset_type,
                 "Account_ID": self.account_id
             }
 
             self.logger.INFO(
-                f"{symbol} REJECTED For {self.user['Name']}", True)
-
-            if asset_type == "OPTION":
-
-                pprint(resp.json())
-
-                print(resp.status_code)
-
-                other["Pre_Symbol"] = trade_data["Pre_Symbol"]
-
-                other["Exp_Date"] = trade_data["Exp_Date"]
+                f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp.json())['error']}", True)
 
             self.other.insert_one(other)
 
@@ -257,7 +162,7 @@ class LiveTrader(Tasks):
 
         self.queueOrder(obj)
 
-        response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ASSET TYPE: {asset_type} - ACCOUNT ID: {self.account_id}"
+        response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
 
         self.logger.INFO(response_msg)
 
@@ -288,7 +193,8 @@ class LiveTrader(Tasks):
 
         for queue_order in queued_orders:
 
-            spec_order = self.tdameritrade.getSpecificOrder(queue_order["Order_ID"])
+            spec_order = self.tdameritrade.getSpecificOrder(
+                queue_order["Order_ID"])
 
             new_status = spec_order["status"]
 
@@ -305,25 +211,17 @@ class LiveTrader(Tasks):
 
                     # REMOVE FROM QUEUE
                     self.queue.delete_one({"Trader": self.user["Name"], "Symbol": queue_order["Symbol"],
-                                            "Strategy": queue_order["Strategy"], "Asset_Type": self.asset_type, "Account_ID": self.account_id})
+                                           "Strategy": queue_order["Strategy"], "Account_ID": self.account_id})
 
                     other = {
                         "Symbol": queue_order["Symbol"],
                         "Order_Type": order_type,
                         "Order_Status": new_status,
                         "Strategy": queue_order["Strategy"],
-                        "Aggregation": queue_order["Aggregation"],
                         "Trader": self.user["Name"],
                         "Date": getDatetime(),
-                        "Asset_Type": queue_order["Asset_Type"],
                         "Account_ID": self.account_id
                     }
-
-                    if self.asset_type == "OPTION":
-
-                        other["Pre_Symbol"] = queue_order["Pre_Symbol"]
-
-                        other["Exp_Date"] = queue_order["Exp_Date"]
 
                     self.other.insert_one(other)
 
@@ -332,8 +230,8 @@ class LiveTrader(Tasks):
 
                 else:
 
-                    self.queue.update_one({"Trader": self.user["Name"], "Symbol": queue_order["Symbol"], "Strategy": queue_order["Strategy"], "Asset_Type": self.asset_type}, {
-                                            "$set": {"Order_Status": new_status}})
+                    self.queue.update_one({"Trader": self.user["Name"], "Symbol": queue_order["Symbol"], "Strategy": queue_order["Strategy"]}, {
+                        "$set": {"Order_Status": new_status}})
 
     # STEP FOUR
     @exception_handler
@@ -363,10 +261,6 @@ class LiveTrader(Tasks):
 
         strategy = queue_order["Strategy"]
 
-        aggregation = queue_order["Aggregation"]
-
-        asset_type = queue_order["Asset_Type"]
-
         order_type = queue_order["Order_Type"]
 
         account_id = queue_order["Account_ID"]
@@ -374,29 +268,15 @@ class LiveTrader(Tasks):
         obj = {
             "Symbol": symbol,
             "Strategy": strategy,
-            "Aggregation": aggregation,
             "Trader": self.user["Name"],
-            "Asset_Type": asset_type,
             "Account_ID": account_id
         }
-
-        if asset_type == "OPTION":
-
-            obj["Pre_Symbol"] = queue_order["Pre_Symbol"]
-
-            obj["Exp_Date"] = queue_order["Exp_Date"]
 
         if order_type == "BUY" or order_type == "BUY_TO_OPEN":
 
             obj["Qty"] = shares
 
             obj["Buy_Price"] = price
-
-            obj["Last_Price"] = price
-
-            obj["High_Price"] = price
-
-            obj["Opening_Price"] = price
 
             obj["Date"] = getDatetime()
 
@@ -407,13 +287,15 @@ class LiveTrader(Tasks):
 
             except writeConcernError:
 
-                self.logger.ERROR(f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
+                self.logger.ERROR(
+                    f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
 
                 self.open_positions.insert_one(obj)
 
             except writeError:
 
-                self.logger.ERROR(f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
+                self.logger.ERROR(
+                    f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
 
                 self.open_positions.insert_one(obj)
 
@@ -421,7 +303,7 @@ class LiveTrader(Tasks):
 
                 self.logger.ERROR()
 
-            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Aggregation: {aggregation} \n Date: {getDatetime()} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n"
+            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
 
             self.logger.INFO(
                 f"{order_type} ORDER For {symbol} - TRADER: {self.user['Name']}", True)
@@ -471,7 +353,7 @@ class LiveTrader(Tasks):
 
             obj["ROV"] = rov
 
-            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Buy Price: ${position['Buy_Price']} \n Buy Date: {position['Date']} \n Sell Price: ${price} \n Sell Date: {getDatetime()} \n Strategy: {strategy} \n Aggregation: {aggregation} \n ROV: {rov}% \n Sold For: {sold_for} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n"
+            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Buy Price: ${position['Buy_Price']} \n Buy Date: {position['Date']} \n Sell Price: ${price} \n Sell Date: {getDatetime()} \n Strategy: {strategy} \n ROV: {rov}% \n Sold For: {sold_for} \n Trader: {self.user['Name']} \n"
 
             # ADD TO CLOSED POSITIONS
             try:
@@ -480,13 +362,15 @@ class LiveTrader(Tasks):
 
             except writeConcernError:
 
-                self.logger.ERROR(f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
+                self.logger.ERROR(
+                    f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
 
                 self.closed_positions.insert_one(obj)
 
             except writeError:
 
-                self.logger.ERROR(f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
+                self.logger.ERROR(
+                    f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
 
                 self.closed_positions.insert_one(obj)
 
@@ -496,17 +380,18 @@ class LiveTrader(Tasks):
 
             # REMOVE FROM OPEN POSITIONS
             is_removed = self.open_positions.delete_one(
-                {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Asset_Type": self.asset_type})
+                {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
 
             try:
 
                 if int(is_removed.deleted_count) == 0:
 
-                    self.logger.ERROR(f"INITIAL FAIL OF DELETING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
+                    self.logger.ERROR(
+                        f"INITIAL FAIL OF DELETING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
 
                     self.open_positions.delete_one(
-                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Asset_Type": self.asset_type})
-                
+                        {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
+
             except Exception:
 
                 self.logger.ERROR()
@@ -516,7 +401,7 @@ class LiveTrader(Tasks):
 
         # REMOVE FROM QUEUE
         self.queue.delete_one({"Trader": self.user["Name"], "Symbol": symbol,
-                                "Strategy": strategy, "Asset_Type": asset_type, "Account_ID": self.account_id})
+                               "Strategy": strategy, "Account_ID": self.account_id})
 
         self.push.send(msg)
 
@@ -534,14 +419,10 @@ class LiveTrader(Tasks):
         # UPDATE USER ATTRIBUTE
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 
-        self.asset_type = self.user["Accounts"][self.account_id]["Asset_Type"]
-
-        self.limit_offset = self.user["Accounts"][self.account_id]["Limit_Offset"]
-
         # MAY SET THESE DYNAMICALLY FROM WEB APP
         forbidden_symbols = ["COTY", "MRO", "LGF/B", "PCG", "LGF/A"]
 
-        for data in trade_data[self.asset_type]:
+        for data in trade_data:
 
             side = data["Side"]
 
@@ -549,41 +430,38 @@ class LiveTrader(Tasks):
 
             symbol = data["Symbol"]
 
-            asset_type = data["Asset_Type"]
+            account_id = data["Account_ID"]
 
-            account_type = data["Account_Type"]
-
-            account_info = self.user["Accounts"][self.account_id]
-
+            self.updateStrategiesObject(strategy)
+            
             # IF SYMBOL NOT FORBIDDEN AND ACCOUNT TYPE (PRIMARY, SECONDARY) IS EQUAL TO THE ACCOUNT TYPE ASSOCIATED WITH THE TDAMERITRADE ACCOUNT TYPE
-            if symbol not in forbidden_symbols and account_info["Account_Type"] == account_type:
-
+            if symbol not in forbidden_symbols and self.account_id == account_id:
+                
                 # CHECK OPEN POSITIONS AND QUEUE
                 open_position = self.open_positions.find_one(
-                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Asset_Type": asset_type, "Account_ID": self.account_id})
+                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
 
                 queued = self.queue.find_one(
-                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Asset_Type": asset_type, "Account_ID": self.account_id})
+                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
 
                 # BUY ##############################
-                if side == "BUY" or side == "BUY_TO_OPEN":
-
+                if side == "BUY":
+                    
                     if not open_position and not queued:
-
+                        
                         # LIVE TRADE
+                        # THIS CHECK IF USER IS ACTIVE. IF NOT ACTIVE, ALL BUYING STOPS
                         if self.user["Active"]:
-
+                            
                             self.placeOrder(data)
 
                 # SELL ##############################
-                elif side == "SELL" or side == "SELL_TO_CLOSE":
+                elif side == "SELL":
 
                     if open_position and not queued:
 
                         # LIVE TRADE
                         self.placeOrder(data, open_position)
-
-                self.updateStrategiesObject(strategy)
 
 # {'accountId': 123456789,
 #  'cancelTime': '2021-04-19',
