@@ -8,14 +8,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 import os.path
-import pickle
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import base64
-import json
-from datetime import datetime
-import pytz
 import os
+from pprint import pprint
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -67,7 +61,7 @@ class Gmail():
                 self.creds.refresh(Request())
 
             if self.creds != None:
-
+                
                 # Save the credentials for the next run
                 with open(self.token_file, 'w') as token:
 
@@ -123,15 +117,17 @@ class Gmail():
 
                             symbols = sep[0].strip().split(",")
 
-                            strategy, side, *account_ids = sep[1].strip().split(",")
+                            strategy, side, * \
+                                account_ids = sep[1].strip().split(",")
 
-                            account_ids = [int(account_id.replace(".", " ").strip()) for account_id in account_ids]
+                            account_ids = [int(account_id.replace(
+                                ".", " ").strip()) for account_id in account_ids]
 
                             for symbol in symbols:
 
                                 if strategy != "" and side != "" and len(account_ids) > 0:
 
-                                    # ITERATE OVER LIST OF ACCOUNT IDS FOR THIS PARTICULAR STRATEGY AND SYMBOL 
+                                    # ITERATE OVER LIST OF ACCOUNT IDS FOR THIS PARTICULAR STRATEGY AND SYMBOL
                                     for account_id in account_ids:
 
                                         obj = {

@@ -18,13 +18,9 @@ class SimTrader():
 
         self.closed_positions = self.db["closed_positions"]
 
-        self.eleven_check = False
-
     def buyOrder(self, symbol):
 
         try:
-
-            aggregation = symbol["Aggregation"]
 
             strategy = symbol["Strategy"]
 
@@ -41,8 +37,7 @@ class SimTrader():
                 "Qty": shares,
                 "Buy_Price": price,
                 "Date": getDatetime(),
-                "Strategy": strategy,
-                "Aggregation": aggregation
+                "Strategy": strategy
             }
 
             # ADD TO OPEN POSITIONS
@@ -58,8 +53,6 @@ class SimTrader():
     def sellOrder(self, symbol, position):
 
         try:
-
-            aggregation = symbol["Aggregation"]
 
             strategy = symbol["Strategy"]
 
@@ -96,7 +89,6 @@ class SimTrader():
                 "Sell_Price": price,
                 "Sell_Date": getDatetime(),
                 "Strategy": strategy,
-                "Aggregation": aggregation,
                 "ROV": rov
             }
 
@@ -116,35 +108,13 @@ class SimTrader():
 
             print("SIM TRADER - sellOrder", e)
 
-    # SELL END OF DAY STOCK
-    def sellOut(self, strategies):
-
-        try:
-
-            # GET ALL SECONDARY_AGG POSITIONS AND SELL THEM
-            open_positions = self.open_positions.find({"$or": strategies})
-
-            for position in open_positions:
-
-                trade_data = {
-                    "Symbol": position["Symbol"],
-                    "Aggregation": position["Aggregation"],
-                    "Strategy": position["Strategy"]
-                }
-
-                self.sellOrder(trade_data, position)
-
-        except Exception as e:
-
-            print("SIM TRADER - sellOut", e)
-
     def runTrader(self, symbols, tdameritrade):
 
         try:
 
             self.tdameritrade = tdameritrade
 
-            for row in symbols["EQUITY"]:
+            for row in symbols:
 
                 side = row["Side"]
 
@@ -172,25 +142,6 @@ class SimTrader():
         except Exception as e:
 
             print("SIM TRADER - runTrader", e)
-
-        finally:
-
-            dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-            dt_central = dt.astimezone(pytz.timezone('US/Central'))
-
-            # SELL ALL Sec_Agg_Daytrade AT 14:30
-            if dt_central.strftime("%H:%M") == "14:30":
-
-                if not self.eleven_check:
-
-                    self.sellOut([{"Strategy": "Sec_Aggressive"}])
-
-                    self.eleven_check = True
-
-            else:
-
-                self.eleven_check = False
 
     def sendStrategyResult(self, email, obj):
 
