@@ -211,4 +211,4 @@ if __name__ == "__main__":
 
             main.run()
             
-            time.sleep(5)
+            time.sleep(selectSleep())

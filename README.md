@@ -110,9 +110,7 @@
 
 ![Live Trader Database](assets/img/Live_Trader_Collections.png)
 
-- Most of the Live_Trader collections are used to collect long term data for use on my front end web app I have developed, which is not public at this time.
-
-- The most crucial collections are:
+- The collections are:
 
   1. users
   2. queue
@@ -132,35 +130,25 @@
 
 ![Sim Trader Database](assets/img/Sim_Trader_Collections.png)
 
+- The image above shows the structure of the sim_trader collection. Only open_positions and closed_positions are needed.
+
 ![Users Collection](assets/img/Users_Collection_Setup.png)
 
 - The image above shows the structure of how a user is setup. In the Accounts object, the key is the account number, and the value is another object with all of that account info and the tokens. All of this will auto populate into the users collection once you create your API tokens for TDAmeritrade using this [repo](https://github.com/TreyThomas93/TDA-Token) here.
+
+- *ATTENTION:*  I have grossly reduced the amount of data needed to be stored in these collections. I even reduced the amount of collections overall. I minimalized and cut out the unneccessary parts that only served to represent data within a web app I created. Therefore, the code is simpler and easier to break down. If you want to add more features and such, then you obviously can do so.
 
 ### <a name="gmail"></a> Gmail
 
 - First off, it is best to create an additional and seperate Gmail account and not your personal account.
 
 - Make sure that you are in the account that will be used to receive alerts from Thinkorswim.
-
-- You will need to create and turn on Google Docs API.
-  https://developers.google.com/docs/api/quickstart/python
-
-- Once created, save the credentials.json file to the creds directory within your gmail package in the program. This will be converted to token.json. After that, you can delete the credentials.json file.
-
-- Run the program to see if you connect to Gmail. You will be prompted to sign in to your account. Make sure you sign in with the account you will be using with Thinkorswim for the program. You may be given an Unverified Apps screen. If so, follow this:
-
-  1. Click the advanced button bottom left.
-  2. Click the Go to Quickstart (unsafe) button.
-  3. Click Allow.
-  4. Click Allow again.
-  5. You then will be redirected to a callback of localhost with the message "The authentication flow has completed. You may close this window."
-  6. Exit out, and you should be connected.
-
-- Once verified, you may have to go to your Google Developers Portal to enable your app.
-
-- Now you should be able to fully connect. If the token.json gets removed, you will not be able to connect.
-
-- Let me know via email if you have issues, and I can help guide you through the process.
+  
+- *Step by Step (Follow this to setup Gmail API):*
+1. https://developers.google.com/gmail/api/quickstart/python
+2. https://developers.google.com/workspace/guides/create-project
+3. https://developers.google.com/workspace/guides/create-credentials
+4. If you get an access_denied when you run the program, try this: https://stackoverflow.com/questions/65184355/error-403-access-denied-from-google-authentication-web-api-despite-google-acc
 
 ### <a name="pushsafer"></a> Pushsafer
 
@@ -194,15 +182,13 @@
 
 #### <a name="scanner-names"></a> Scanner Names
 
-- The format for the scanner name should look like this: STRATEGY, SIDE, AGGREGATION, ASSET TYPE, ACCOUNT TYPE
+- The format for the scanner name should look like this: STRATEGY, SIDE, ACCOUNT ID #1, ACCOUNT ID #2... ECT.
 
 - Example: ![Scanner Name Format](assets/img/Scanner_Name_Format.PNG)
 
-  1. REVA is the strategy name.
+  1. REVA is the strategy name example.
   2. SELL is the side. Can be BUY, SELL, BUY_TO_OPEN, SELL_TO_CLOSE
-  3. 4h is the aggregation. ex. 30m, 1h, 4h, D
-  4. EQUITY is the asset type. Can be EQUITY OR OPTION
-  5. PRIMARY is the account type. Can be PRIMARY, SECONDARY, ect.... (Subject to change to Day, Swing)
+  3. ACCOUNT ID. ADD AS MANY ACCOUNT IDS THAT YOU WANT FROM HERE, FOLLOWED BY COMMAS OF COURSE. ALL OF THESE ACCOUNTS WILL RUN THIS PARTICULAR STRATEGY AND SYMBOL.
 
 - Must be in this exact order and spelled correctly for this to work properly.
 
@@ -283,32 +269,30 @@
 
 ### <a name="code-counter"></a> CODE COUNTER
 
-Total : 15 files, 2290 codes, 440 comments, 1239 blanks, all 3969 lines
+Total : 15 files,  1839 codes, 341 comments, 842 blanks, all 3022 lines
 
-#### Languages
+## Languages
+| language | files | code | comment | blank | total |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Python | 12 | 923 | 341 | 709 | 1,973 |
+| JSON | 1 | 696 | 0 | 1 | 697 |
+| Markdown | 1 | 196 | 0 | 128 | 324 |
+| toml | 1 | 24 | 0 | 4 | 28 |
 
-| language | files |  code | comment | blank | total |
-| :------- | ----: | ----: | ------: | ----: | ----: |
-| Python   |    12 | 1,423 |     440 | 1,116 | 2,979 |
-| JSON     |     1 |   650 |       0 |     1 |   651 |
-| Markdown |     1 |   193 |       0 |   118 |   311 |
-| toml     |     1 |    24 |       0 |     4 |    28 |
-
-#### Directories
-
-| path                     | files |  code | comment | blank | total |
-| :----------------------- | ----: | ----: | ------: | ----: | ----: |
-| .                        |    15 | 2,290 |     440 | 1,239 | 3,969 |
-| assets                   |     5 |   111 |      43 |    92 |   246 |
-| assets\exception_handler |     1 |    17 |       1 |    17 |    35 |
-| assets\logger            |     1 |    50 |      36 |    44 |   130 |
-| assets\push_notification |     1 |    37 |       5 |    24 |    66 |
-| gmail                    |     1 |   147 |      36 |   120 |   303 |
-| live_trader              |     1 |   304 |     103 |   218 |   625 |
-| mongo                    |     1 |    33 |       0 |    30 |    63 |
-| sim_trader               |     1 |   232 |      65 |   225 |   522 |
-| tasks                    |     1 |   346 |      69 |   232 |   647 |
-| tdameritrade             |     1 |   144 |      85 |   114 |   343 |
+## Directories
+| path | files | code | comment | blank | total |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| . | 15 | 1,839 | 341 | 842 | 3,022 |
+| assets | 5 | 116 | 43 | 97 | 256 |
+| assets\exception_handler | 1 | 22 | 1 | 22 | 45 |
+| assets\logger | 1 | 50 | 36 | 44 | 130 |
+| assets\push_notification | 1 | 37 | 5 | 24 | 66 |
+| gmail | 1 | 95 | 31 | 78 | 204 |
+| live_trader | 1 | 243 | 104 | 164 | 511 |
+| mongo | 1 | 36 | 1 | 32 | 69 |
+| sim_trader | 1 | 88 | 9 | 68 | 165 |
+| tasks | 1 | 103 | 31 | 77 | 211 |
+| tdameritrade | 1 | 144 | 85 | 114 | 343 |
 
 ### <a name="final-thoughts-and-support"></a> FINAL THOUGHTS
 
