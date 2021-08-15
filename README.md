@@ -2,7 +2,9 @@
 
 ## Description
 
-- This program is an automated trading bot that uses TDAmeritrades Thinkorswim trading platform's scanners and alerts system.
+- This program is an automated trading bot that uses TDAmeritrades Thinkorswim trading platform's scanners and alerts systems to place trades dynamically using the TDAmeritrade API.
+
+- *ATTENTION:* This branch is a simpler and grossly reduced version of the master branch. It allows for a very basic and simple code base to focus on the main components of the program. The main things removed from the program were methods that were used to collect data for a web app I created to display my program results. Therefore, it wasn't necessary for the program to work properly for it's intended purposes. I also removed the OPTIONS handler.  You could always re-add these methods and functionality to your code.
 
 ## Table Of Contents
 
@@ -136,7 +138,7 @@
 
 - The image above shows the structure of how a user is setup. In the Accounts object, the key is the account number, and the value is another object with all of that account info and the tokens. All of this will auto populate into the users collection once you create your API tokens for TDAmeritrade using this [repo](https://github.com/TreyThomas93/TDA-Token) here.
 
-- *ATTENTION:*  I have grossly reduced the amount of data needed to be stored in these collections. I even reduced the amount of collections overall. I minimalized and cut out the unneccessary parts that only served to represent data within a web app I created. Therefore, the code is simpler and easier to break down. If you want to add more features and such, then you obviously can do so.
+- *ATTENTION:*  I have grossly reduced the amount of data needed to be stored in these collections. I even reduced the amount of collections overall. I minimalized and cut out the unnecessary parts that only served to represent data within a web app I created. Therefore, the code is simpler and easier to break down. If you want to add more features and such, then you obviously can do so.
 
 ### <a name="gmail"></a> Gmail
 
