@@ -191,7 +191,7 @@
 - Example: ![Scanner Name Format](assets/img/Scanner_Name_Format.PNG)
 
   1. REVA is the strategy name example.
-  2. SELL is the side. Can be BUY, SELL, BUY_TO_OPEN, SELL_TO_CLOSE
+  2. SELL is the side. Can be BUY or SELL
   3. ACCOUNT ID. ADD AS MANY ACCOUNT IDS THAT YOU WANT FROM HERE, FOLLOWED BY COMMAS OF COURSE. ALL OF THESE ACCOUNTS WILL RUN THIS PARTICULAR STRATEGY AND SYMBOL.
 
 - Must be in this exact order and spelled correctly for this to work properly.
