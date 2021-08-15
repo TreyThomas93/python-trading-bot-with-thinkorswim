@@ -52,7 +52,7 @@ class Gmail():
             if not self.creds:
 
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', self.SCOPES)
+                    self.creds_file, self.SCOPES)
 
                 self.creds = flow.run_local_server(port=0)
 
