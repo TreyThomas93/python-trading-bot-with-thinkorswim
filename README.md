@@ -150,7 +150,7 @@
 1. https://developers.google.com/gmail/api/quickstart/python
 2. https://developers.google.com/workspace/guides/create-project
 3. https://developers.google.com/workspace/guides/create-credentials
-4. If you get an access_denied when you run the program, try this: https://stackoverflow.com/questions/65184355/error-403-access-denied-from-google-authentication-web-api-despite-google-acc
+4. If you get an access_denied during the OAuth process, try this: https://stackoverflow.com/questions/65184355/error-403-access-denied-from-google-authentication-web-api-despite-google-acc
 
 ### <a name="pushsafer"></a> Pushsafer
 
