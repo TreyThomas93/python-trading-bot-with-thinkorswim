@@ -1,12 +1,10 @@
 # imports
 from datetime import datetime, timedelta
 import urllib.parse as up
-import platform
-import os
+from pprint import pprint
 import pytz
 import time
 import requests
-import json
 from assets.exception_handler import exception_handler
 
 
@@ -109,13 +107,13 @@ class TDAmeritrade:
 
         days_left = (refresh_exp - now).total_seconds() / 60 / 60 / 24
 
-        if days_left == 1:
+        if days_left <= 1:
             
             token = self.getNewTokens(
                 user["Accounts"][self.account_id], refresh_type="Refresh Token")
 
             if token:
-
+                print(token)
                 # ADD NEW TOKEN DATA TO USER DATA IN DB
                 self.users.update_one({"Name": self.user["Name"]}, {
                     "$set": {f"{self.account_id}.refresh_token": token['refresh_token'], f"{self.account_id}.refresh_exp_date": (datetime.now().replace(

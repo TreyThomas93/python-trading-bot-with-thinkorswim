@@ -121,16 +121,16 @@ class SimTrader():
                 strategy = row["Strategy"]
 
                 symbol = row["Symbol"]
-
+                
                 open_position = self.open_positions.find_one(
                     {"Symbol": symbol, "Strategy": strategy})
 
                 forbidden_symbols = ["COTY", "MRO", "LGF/B", "PCG", "LGF/A"]
 
                 if side == "BUY" and symbol not in forbidden_symbols:
-
+                    
                     if not open_position:
-
+                        
                         self.buyOrder(row)
 
                 elif side == "SELL":
