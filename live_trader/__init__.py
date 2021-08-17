@@ -62,9 +62,19 @@ class LiveTrader(Tasks):
 
         resp = self.tdameritrade.getQuote(symbol)
 
+        price = float(resp[symbol]["lastPrice"])
+
+        if price < 1:
+
+            price = round(price, 4)
+
+        else:
+
+            price = round(price, 2)
+
         order = {
             "orderType": "LIMIT",
-            "price": float(resp[symbol]["lastPrice"]),
+            "price": price,
             "session": "SEAMLESS",
             "duration": "GOOD_TILL_CANCEL",
             "orderStrategyType": "SINGLE",
