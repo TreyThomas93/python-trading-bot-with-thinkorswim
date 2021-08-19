@@ -2,6 +2,7 @@ from assets.current_datetime import getDatetime
 from tasks import Tasks
 from threading import Thread
 from assets.exception_handler import exception_handler
+from pprint import pprint
 
 
 class LiveTrader(Tasks):
@@ -198,11 +199,12 @@ class LiveTrader(Tasks):
 
             IF REJECTED OR CANCELED, THEN QUEUED ORDER IS REMOVED FROM QUEUE AND SENT TO OTHER COLLECTION IN MONGODB.
         """
+        
         queued_orders = self.queue.find({"Trader": self.user["Name"], "Order_ID": {
-                                        "$ne": None}, "Asset_Type": self.asset_type, "Account_ID": self.account_id})
-
+                                        "$ne": None}, "Account_ID": self.account_id})
+        
         for queue_order in queued_orders:
-
+            
             spec_order = self.tdameritrade.getSpecificOrder(
                 queue_order["Order_ID"])
 
@@ -214,7 +216,7 @@ class LiveTrader(Tasks):
             if queue_order["Order_ID"] == spec_order["orderId"]:
 
                 if new_status == "FILLED":
-
+                    
                     self.pushOrder(queue_order, spec_order)
 
                 elif new_status == "CANCELED" or new_status == "REJECTED":
@@ -282,7 +284,7 @@ class LiveTrader(Tasks):
             "Account_ID": account_id
         }
 
-        if order_type == "BUY" or order_type == "BUY_TO_OPEN":
+        if order_type == "BUY":
 
             obj["Qty"] = shares
 
@@ -318,7 +320,7 @@ class LiveTrader(Tasks):
             self.logger.INFO(
                 f"{order_type} ORDER For {symbol} - TRADER: {self.user['Name']}", True)
 
-        elif order_type == "SELL" or order_type == "SELL_TO_CLOSE":
+        elif order_type == "SELL":
 
             position = self.open_positions.find_one(
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
@@ -332,8 +334,6 @@ class LiveTrader(Tasks):
             obj["Sell_Price"] = price
 
             obj["Sell_Date"] = getDatetime()
-
-            obj["High_Price"] = position["High_Price"]
 
             sell_price = round(price * position["Qty"], 2)
 
@@ -423,9 +423,10 @@ class LiveTrader(Tasks):
         Args:
             trade_data ([list]): CONSISTS OF TWO DICTS TOP LEVEL, AND THEIR VALUES AS LISTS CONTAINING ALL THE TRADE DATA FOR EACH STOCK.
         """
+        
         # UPDATE ALL ORDER STATUS'S
         self.updateStatus()
-
+        
         # UPDATE USER ATTRIBUTE
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 

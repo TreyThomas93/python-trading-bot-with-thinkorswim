@@ -63,7 +63,7 @@ class Tasks:
         """
         # CHECK ALL QUEUE ORDERS AND CANCEL ORDER IF GREATER THAN TWO HOURS OLD
         queue_orders = self.queue.find(
-            {"Trader": self.user["Name"], "Asset_Type": self.asset_type, "Account_ID": self.account_id})
+            {"Trader": self.user["Name"], "Account_ID": self.account_id})
 
         dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
@@ -98,21 +98,14 @@ class Tasks:
                         "Order_Status": "CANCELED",
                         "Strategy": order["Strategy"],
                         "Account_ID": self.account_id,
-                        "Aggregation": order["Aggregation"],
                         "Trader": self.user["Name"],
                         "Date": getDatetime()
                     }
 
-                    if self.asset_type == "OPTION":
-
-                        other["Pre_Symbol"] = order["Pre_Symbol"]
-
-                        other["Exp_Date"] = order["Exp_Date"]
-
                     self.other.insert_one(other)
 
                     self.queue.delete_one(
-                        {"Trader": self.user["Name"], "Symbol": order["Symbol"], "Strategy": order["Strategy"], "Asset_Type": self.asset_type})
+                        {"Trader": self.user["Name"], "Symbol": order["Symbol"], "Strategy": order["Strategy"]})
 
                     self.logger.INFO(
                         f"CANCELED ORDER FOR {order['Symbol']} - TRADER: {self.user['Name']}", True)

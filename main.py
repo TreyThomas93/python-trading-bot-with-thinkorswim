@@ -153,16 +153,14 @@ class Main:
         trade_data = self.gmail.getEmails()
         
         for live_trader in self.traders.values():
-
-            if len(trade_data) > 0:
                 
-                live_trader.runTrader(trade_data)
+            live_trader.runTrader(trade_data)
 
-                if not sim_went: # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
+            if not sim_went: # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
 
-                    self.sim_trader.runTrader(trade_data, live_trader.tdameritrade)
+                self.sim_trader.runTrader(trade_data, live_trader.tdameritrade)
 
-                    sim_went = True
+                sim_went = True
     
 if __name__ == "__main__":
     """ START OF SCRIPT.

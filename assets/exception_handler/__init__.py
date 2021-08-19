@@ -8,29 +8,29 @@ def exception_handler(func):
 
     def wrapper(self, *args, **kwargs):
 
+        class_name = self.__class__.__name__
+
         try:
             
             return func(self, *args, **kwargs)
 
         except KeyError:
 
-            pass
+            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except ValueError:
 
-            pass
+            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except TypeError:
 
-            pass
+            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except AttributeError:
 
-            pass
+            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except Exception:
-
-            class_name = self.__class__.__name__
 
             acceptable_classes = ["Tasks", "LiveTrader"]
 
