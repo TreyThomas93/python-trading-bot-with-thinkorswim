@@ -40,8 +40,6 @@ class MongoDB:
 
                 self.closed_positions = self.db["closed_positions"]
 
-                self.strategy_history = self.db["strategy_history"]
-
                 self.other = self.db["other"]
 
                 self.queue = self.db["queue"]
@@ -50,9 +48,7 @@ class MongoDB:
 
                 self.balance_history = self.db["balance_history"]
 
-                self.open_positions_history = self.db["open_positions_history"]
-
-                self.closed_positions_history = self.db["closed_positions_history"]
+                self.profit_loss_history = self.db["profit_loss_history"]
 
                 self.logger.INFO("CONNECTED TO MONGO!\n")
 

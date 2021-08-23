@@ -211,7 +211,7 @@ class LiveTrader(Tasks):
             new_status = spec_order["status"]
 
             order_type = queue_order["Order_Type"]
-
+            
             # CHECK IF QUEUE ORDER ID EQUALS TDA ORDER ID
             if queue_order["Order_ID"] == spec_order["orderId"]:
 

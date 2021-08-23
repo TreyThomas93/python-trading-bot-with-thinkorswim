@@ -12,33 +12,25 @@ class Tasks:
 
         self.balance_history = self.mongo.balance_history
 
-        self.open_positions_history = self.mongo.open_positions_history
-
-        self.closed_positions_history = self.mongo.closed_positions_history
-
-        self.open_positions = self.mongo.open_positions
-
-        self.closed_positions = self.mongo.closed_positions
-
-        self.strategy_history = self.mongo.strategy_history
+        self.profit_loss_history = self.mongo.profit_loss_history
 
         self.logger = self.logger
-
-        self.alert_sent = []
-
-        self.inconsistent_list = []
-
-        self.market_close_check = False
-
+        
         self.midnight = False
-
-        self.on_the_hour = False
 
         self.isAlive = True
 
-        self.market_close_check = False
+    @exception_handler
+    def updateAccountBalance(self):
+        """ METHOD UPDATES USERS ACCOUNT BALANCE IN MONGODB
+        """
+        account = self.tdameritrade.getAccount()
 
-        self.eleven_check = False
+        liquidation_value = float(
+            account["securitiesAccount"]["currentBalances"]["liquidationValue"])
+
+        self.users.update_one({"Name": self.user["Name"]}, {"$set": {
+            f"Accounts.{self.account_id}.Account_Balance": liquidation_value}})
 
     @exception_handler
     def getDatetimeSplit(self):
@@ -55,8 +47,61 @@ class Tasks:
 
         return (dt_only, tm_only)
 
-    # KILL QUEUE ORDER IF SITTING IN QUEUE GREATER THAN 2 HOURS
     @exception_handler
+    def balanceHistory(self):
+        """ METHOD SAVES BALANCE HISTORY AT THE END OF THE DAY
+        """
+        dt_only, tm_only = self.getDatetimeSplit()
+
+        balance = self.user["Accounts"][self.account_id]["Account_Balance"]
+
+        # GET CURRENT BALANCE
+        balance_found = self.balance_history.find_one(
+            {"Date":  dt_only, "Trader": self.user["Name"], "Account_ID": self.account_id})
+
+        if not balance_found:
+
+            self.balance_history.insert_one({
+                "Trader": self.user["Name"],
+                "Date": dt_only,
+                "Account_ID": self.account_id,
+                "Balance": balance
+            })
+
+    @exception_handler
+    def profitLossHistory(self):
+
+        dt_only, tm_only = self.getDatetimeSplit()
+
+        profit_loss_found = self.balance_history.find_one(
+            {"Date":  dt_only, "Trader": self.user["Name"], "Account_ID": self.account_id})
+
+        profit_loss = 0
+
+        closed_positions = self.closed_positions.find(
+            {"Trader": self.user["Name"], "Account_ID": self.account_id})
+
+        for position in closed_positions:
+
+            buy_price = position["Buy_Price"]
+
+            sell_price = position["Sell_Price"]
+
+            qty = position["Qty"]
+
+            profit_loss += ((sell_price * qty) - (buy_price * qty))
+
+        if not profit_loss_found:
+
+            self.balance_history.insert_one({
+                "Trader": self.user["Name"],
+                "Date": dt_only,
+                "Account_ID": self.account_id,
+                "Profit_Loss": profit_loss
+            })
+
+    # KILL QUEUE ORDER IF SITTING IN QUEUE GREATER THAN 2 HOURS
+    @ exception_handler
     def killQueueOrder(self):
         """ METHOD QUERIES ORDERS IN QUEUE AND LOOKS AT INSERTION TIME.
             IF QUEUE ORDER INSERTION TIME GREATER THAN TWO HOURS, THEN THE ORDER IS CANCELLED.
@@ -125,9 +170,9 @@ class Tasks:
                 if order["Symbol"] in self.no_ids_list:
 
                     self.no_ids_list.remove(order["Symbol"])
-    
+
     # ADD NEW STRATEGIES TO OBJECT
-    @exception_handler
+    @ exception_handler
     def updateStrategiesObject(self, strategy):
         """ METHOD UPDATES STRATEGIES OBJECT IN MONGODB WITH NEW STRATEGIES.
 
@@ -186,6 +231,29 @@ class Tasks:
 
                 # RUN TASKS ####################################################
                 self.killQueueOrder()
+
+                self.updateAccountBalance()
+
+                dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
+
+                dt_central = dt.astimezone(pytz.timezone('US/Central'))
+
+                # IF MIDNIGHT, ADD BALANCE, PROFIT/LOSS TO HISTORY
+                midnight = dt_central.time().strftime("%H:%M")
+
+                if midnight == "23:55":
+
+                    if not self.midnight:
+
+                        self.balanceHistory()
+
+                        self.profitLossHistory()
+
+                        self.midnight = True
+
+                else:
+
+                    self.midnight = False
 
             except KeyError:
 
