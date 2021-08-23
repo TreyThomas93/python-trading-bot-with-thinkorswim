@@ -143,13 +143,13 @@ class Main:
         """
 
         sim_went = False
-
+        
         self.setupTraders()
-
+        
         self.checkTradersAndAccounts()
-
+        
         self.terminateNeeded()
-
+        
         trade_data = self.gmail.getEmails()
         
         for live_trader in self.traders.values():

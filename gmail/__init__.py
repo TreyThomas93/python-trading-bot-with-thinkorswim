@@ -172,10 +172,10 @@ class Gmail():
         payloads = []
 
         try:
-
+            
             # GETS LIST OF ALL EMAILS
             results = self.service.users().messages().list(userId='me').execute()
-
+            
             if results['resultSizeEstimate'] != 0:
 
                 # {'id': '173da9a232284f0f', 'threadId': '173da9a232284f0f'}

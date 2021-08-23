@@ -15,7 +15,7 @@ class Tasks:
         self.profit_loss_history = self.mongo.profit_loss_history
 
         self.logger = self.logger
-        
+
         self.midnight = False
 
         self.isAlive = True
@@ -53,7 +53,8 @@ class Tasks:
         """
         dt_only, tm_only = self.getDatetimeSplit()
 
-        balance = self.user["Accounts"][self.account_id]["Account_Balance"]
+        balance = self.user["Accounts"][str(
+            self.account_id)]["Account_Balance"]
 
         # GET CURRENT BALANCE
         balance_found = self.balance_history.find_one(
@@ -73,7 +74,7 @@ class Tasks:
 
         dt_only, tm_only = self.getDatetimeSplit()
 
-        profit_loss_found = self.balance_history.find_one(
+        profit_loss_found = self.profit_loss_history.find_one(
             {"Date":  dt_only, "Trader": self.user["Name"], "Account_ID": self.account_id})
 
         profit_loss = 0
@@ -93,7 +94,7 @@ class Tasks:
 
         if not profit_loss_found:
 
-            self.balance_history.insert_one({
+            self.profit_loss_history.insert_one({
                 "Trader": self.user["Name"],
                 "Date": dt_only,
                 "Account_ID": self.account_id,

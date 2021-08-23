@@ -431,8 +431,8 @@ class LiveTrader(Tasks):
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 
         # MAY SET THESE DYNAMICALLY FROM WEB APP
-        forbidden_symbols = ["COTY", "MRO", "LGF/B", "PCG", "LGF/A"]
-
+        forbidden_symbols = self.user["Accounts"][str(self.account_id)]["forbidden_symbols"]
+        
         for data in trade_data:
 
             side = data["Side"]
