@@ -462,7 +462,7 @@ class LiveTrader(Tasks):
                         
                         # LIVE TRADE
                         # THIS CHECK IF USER IS ACTIVE. IF NOT ACTIVE, ALL BUYING STOPS
-                        if self.user["Active"]:
+                        if self.user["Accounts"][str(self.account_id)]["Active"]:
                             
                             self.placeOrder(data)
 

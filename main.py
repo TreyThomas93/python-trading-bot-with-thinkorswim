@@ -17,6 +17,7 @@ THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 assets = os.path.join(THIS_FOLDER, 'assets')
 
+
 class Main:
 
     def connectAll(self):
@@ -71,12 +72,13 @@ class Main:
 
                     if account_id not in self.traders and account_id not in self.not_connected:
 
-                        tdameritrade = TDAmeritrade(self.mongo, user, account_id, self.logger)
+                        tdameritrade = TDAmeritrade(
+                            self.mongo, user, account_id, self.logger)
 
                         connected = tdameritrade.initialConnect()
-                        
+
                         if connected:
-                            
+
                             obj = LiveTrader(user, self.mongo, PushNotification(
                                 user["deviceID"], self.logger, self.gmail), self.logger, int(account_id), tdameritrade)
 
@@ -120,7 +122,6 @@ class Main:
 
     @exception_handler
     def terminateNeeded(self):
-
         """ METHOD ITERATES THROUGH INSTANCES AND FIND ATTRIBUTE NAMED TERMINATE AND CHECKS IF TRUE.
             IF TRUE, REMOVE FROM SELF.TRADERS AND STOP TASKS
         """
@@ -136,32 +137,33 @@ class Main:
                 del self.traders[account_id]
 
                 self.logger.INFO(f"ACCOUNT ID {account_id} REMOVED")
-   
+
     @exception_handler
     def run(self):
         """ METHOD RUNS THE TWO METHODS ABOVE AND THEN RUNS LIVE TRADER METHOD RUNTRADER FOR EACH INSTANCE.
         """
 
         sim_went = False
-        
+
         self.setupTraders()
-        
+
         self.checkTradersAndAccounts()
-        
+
         self.terminateNeeded()
-        
+
         trade_data = self.gmail.getEmails()
-        
+
         for live_trader in self.traders.values():
-                
+
             live_trader.runTrader(trade_data)
 
-            if not sim_went: # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
+            if not sim_went:  # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
 
                 self.sim_trader.runTrader(trade_data, live_trader.tdameritrade)
 
                 sim_went = True
-    
+
+
 if __name__ == "__main__":
     """ START OF SCRIPT.
         INITIALIZES MAIN CLASS AND RUNS RUN METHOD ON WHILE LOOP WITH A SLEEP TIME THAT VARIES FROM 5 SECONDS TO 60 SECONDS.
@@ -208,5 +210,5 @@ if __name__ == "__main__":
         while True:
 
             main.run()
-            
+
             time.sleep(selectSleep())
