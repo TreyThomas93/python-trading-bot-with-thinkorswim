@@ -4,7 +4,7 @@
 
 - This program is an automated trading bot that uses TDAmeritrades Thinkorswim trading platform's scanners and alerts systems to place trades dynamically using the TDAmeritrade API.
 
-- *ATTENTION:* This branch is a simpler and grossly reduced version of the master branch. It allows for a very basic and simple code base to focus on the main components of the program. The main things removed from the program were methods that were used to collect data for a web app I created to display my program results. Therefore, it wasn't necessary for the program to work properly for it's intended purposes. I also removed the OPTIONS handler.  You could always re-add these methods and functionality to your code. I also revised on how the scanner names are formated and removed unnecessary collections in Mongo, so please check out the rest of this updated README.
+- _ATTENTION:_ This branch is a simpler and grossly reduced version of the master branch. It allows for a very basic and simple code base to focus on the main components of the program. The main things removed from the program were methods that were used to collect data for a web app I created to display my program results. Therefore, it wasn't necessary for the program to work properly for it's intended purposes. I also removed the OPTIONS handler. You could always re-add these methods and functionality to your code. I also revised on how the scanner names are formated and removed unnecessary collections in Mongo, so please check out the rest of this updated README.
 
 ## Table Of Contents
 
@@ -138,15 +138,15 @@
 
 - The image above shows the structure of how a user is setup. In the Accounts object, the key is the account number, and the value is another object with all of that account info and the tokens. All of this will auto populate into the users collection once you create your API tokens for TDAmeritrade using this [repo](https://github.com/TreyThomas93/TDA-Token) here.
 
-- *ATTENTION:*  I have grossly reduced the amount of data needed to be stored in these collections. I even reduced the amount of collections overall. I minimalized and cut out the unnecessary parts that only served to represent data within a web app I created. Therefore, the code is simpler and easier to break down. If you want to add more features and such, then you obviously can do so.
+- _ATTENTION:_ I have grossly reduced the amount of data needed to be stored in these collections. I even reduced the amount of collections overall. I minimalized and cut out the unnecessary parts that only served to represent data within a web app I created. Therefore, the code is simpler and easier to break down. If you want to add more features and such, then you obviously can do so.
 
 ### <a name="gmail"></a> Gmail
 
 - First off, it is best to create an additional and seperate Gmail account and not your personal account.
 
 - Make sure that you are in the account that will be used to receive alerts from Thinkorswim.
-  
-- *Step by Step (Follow this to setup Gmail API):*
+- _Step by Step (Follow this to setup Gmail API):_
+
 1. https://developers.google.com/gmail/api/quickstart/python
 2. https://developers.google.com/workspace/guides/create-project
 3. https://developers.google.com/workspace/guides/create-credentials
@@ -273,36 +273,38 @@
 
 ### <a name="code-counter"></a> CODE COUNTER
 
-Total : 15 files,  1839 codes, 341 comments, 842 blanks, all 3022 lines
+Total : 15 files, 1839 codes, 341 comments, 842 blanks, all 3022 lines
 
 ## Languages
+
 | language | files | code | comment | blank | total |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| Python | 12 | 923 | 341 | 709 | 1,973 |
-| JSON | 1 | 696 | 0 | 1 | 697 |
-| Markdown | 1 | 196 | 0 | 128 | 324 |
-| toml | 1 | 24 | 0 | 4 | 28 |
+| :------- | ----: | ---: | ------: | ----: | ----: |
+| Python   |    12 |  923 |     341 |   709 | 1,973 |
+| JSON     |     1 |  696 |       0 |     1 |   697 |
+| Markdown |     1 |  196 |       0 |   128 |   324 |
+| toml     |     1 |   24 |       0 |     4 |    28 |
 
 ## Directories
-| path | files | code | comment | blank | total |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 15 | 1,839 | 341 | 842 | 3,022 |
-| assets | 5 | 116 | 43 | 97 | 256 |
-| assets\exception_handler | 1 | 22 | 1 | 22 | 45 |
-| assets\logger | 1 | 50 | 36 | 44 | 130 |
-| assets\push_notification | 1 | 37 | 5 | 24 | 66 |
-| gmail | 1 | 95 | 31 | 78 | 204 |
-| live_trader | 1 | 243 | 104 | 164 | 511 |
-| mongo | 1 | 36 | 1 | 32 | 69 |
-| sim_trader | 1 | 88 | 9 | 68 | 165 |
-| tasks | 1 | 103 | 31 | 77 | 211 |
-| tdameritrade | 1 | 144 | 85 | 114 | 343 |
+
+| path                     | files |  code | comment | blank | total |
+| :----------------------- | ----: | ----: | ------: | ----: | ----: |
+| .                        |    15 | 1,839 |     341 |   842 | 3,022 |
+| assets                   |     5 |   116 |      43 |    97 |   256 |
+| assets\exception_handler |     1 |    22 |       1 |    22 |    45 |
+| assets\logger            |     1 |    50 |      36 |    44 |   130 |
+| assets\push_notification |     1 |    37 |       5 |    24 |    66 |
+| gmail                    |     1 |    95 |      31 |    78 |   204 |
+| live_trader              |     1 |   243 |     104 |   164 |   511 |
+| mongo                    |     1 |    36 |       1 |    32 |    69 |
+| sim_trader               |     1 |    88 |       9 |    68 |   165 |
+| tasks                    |     1 |   103 |      31 |    77 |   211 |
+| tdameritrade             |     1 |   144 |      85 |   114 |   343 |
 
 ### <a name="final-thoughts-and-support"></a> FINAL THOUGHTS
 
 - This is in continous development, with hopes to make this program as good as it can possibly get. I know this README might not do it justice with giving you all the information you may need, and you most likely will have questions. Therefore, don't hesitate to contact me either via Github or email. As for you all, I would like your input on how to improve this, and I also heavily encourage you to fork the code and send me your improvements. I appreciate all the support! Thanks, Trey.
 
-- > *DISCORD GROUP* - I have created a Discord group to allow for a more interactive enviroment that will allow for all of us to answer questions and talk about the program.  <a href="https://discord.gg/ys5jWuSE">Discord Group</a>
+- > _DISCORD GROUP_ - I have created a Discord group to allow for a more interactive enviroment that will allow for all of us to answer questions and talk about the program. <a href="https://discord.gg/ys5jWuSE">Discord Group</a>
 
 - If you like backtesting with Thinkorswim, here's a [repo](https://github.com/TreyThomas93/TOS-Auto-Export) of mine that may help you export strategy reports alot faster.
 
