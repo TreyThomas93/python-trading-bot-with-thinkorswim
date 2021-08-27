@@ -4,7 +4,7 @@
 
 - This program is an automated trading bot that uses TDAmeritrades Thinkorswim trading platform's scanners and alerts systems to place trades dynamically using the TDAmeritrade API.
 
-- _ATTENTION:_ This branch is a simpler and grossly reduced version of the master branch. It allows for a very basic and simple code base to focus on the main components of the program. The main things removed from the program were methods that were used to collect data for a web app I created to display my program results. Therefore, it wasn't necessary for the program to work properly for it's intended purposes. I also removed the OPTIONS handler. You could always re-add these methods and functionality to your code. I also revised on how the scanner names are formated and removed unnecessary collections in Mongo, so please check out the rest of this updated README.
+- _ATTENTION:_ This branch is a simpler and grossly reduced version of the original branch. It allows for a very basic and simple code base to focus on the main components of the program. The main things removed from the program were methods that were used to collect data for a web app I created to display my program results. Therefore, it wasn't necessary for the program to work properly for it's intended purposes. I also removed the OPTIONS handler. You could always re-add these methods and functionality to your code. I also revised on how the scanner names are formated and removed unnecessary collections in Mongo, so please check out the rest of this updated README.
 
 ## Table Of Contents
 
