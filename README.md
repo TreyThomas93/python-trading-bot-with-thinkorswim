@@ -54,7 +54,7 @@
 
 - MongoDB database stores and keeps track of all of your open and closed positions, along with other data. Completely seperated from TDAmeritrade.
 
-- This is setup for both EQUITY and OPTIONS trading, but I have not traded OPTIONS on this as of yet.
+- This is setup for EQUITY only.
 
 - Program Flow Chart
 
@@ -120,7 +120,7 @@
   4. closed_positions
   5. other
 
-- The users collection store all users and their individial data, such as name and accounts.
+- The users collection stores all users and their individial data, such as name and accounts.
 
 - The queue stores non-filled orders that are working or queued, until either cancelled or filled.
 
@@ -136,7 +136,7 @@
 
 ![Users Collection](assets/img/Users_Collection_Setup.png)
 
-- The image above shows the structure of how a user is setup. In the Accounts object, the key is the account number, and the value is another object with all of that account info and the tokens. All of this will auto populate into the users collection once you create your API tokens for TDAmeritrade using this [repo](https://github.com/TreyThomas93/TDA-Token) here.
+- The image above shows the structure of how a user is setup. In the Accounts object, the key is the account number, and the value is another object with all of that accounts info and the tokens. All of this will auto populate into the users collection once you create your API tokens for TDAmeritrade using this [repo](https://github.com/TreyThomas93/TDA-Token) here.
 
 - _ATTENTION:_ I have grossly reduced the amount of data needed to be stored in these collections. I even reduced the amount of collections overall. I minimalized and cut out the unnecessary parts that only served to represent data within a web app I created. Therefore, the code is simpler and easier to break down. If you want to add more features and such, then you obviously can do so.
 
@@ -153,6 +153,10 @@
 4. After you obtain your credentials file, make sure you rename it to credentials.json and store it in the creds folding within the gmail package in the program.
 5. Run the program and you will go through the OAuth process. Once complete, a token.json file will be stored in your creds folder.
 6. If you get an access_denied during the OAuth process, try this: https://stackoverflow.com/questions/65184355/error-403-access-denied-from-google-authentication-web-api-despite-google-acc
+
+*ATTENTION:* Be advised that while your gmail api app that you create during the above process is in TESTING mode, the tokens will expire after 7 days. https://stackoverflow.com/questions/66058279/token-has-been-expired-or-revoked-google-oauth2-refresh-token-gets-expired-i 
+
+- If anyone finds an easier way around this or a better way to go about the production process, please let me know.
 
 ### <a name="pushsafer"></a> Pushsafer
 
