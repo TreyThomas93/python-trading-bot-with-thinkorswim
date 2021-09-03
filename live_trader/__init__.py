@@ -109,7 +109,8 @@ class LiveTrader(Tasks):
         if side == "BUY":
 
             # GET SHARES FOR PARTICULAR STRATEGY
-            strategies = self.user["Accounts"][str(self.account_id)]["Strategies"]
+            strategies = self.user["Accounts"][str(
+                self.account_id)]["Strategies"]
 
             position_size = int(strategies[strategy]["Position_Size"])
 
@@ -119,11 +120,13 @@ class LiveTrader(Tasks):
 
             if active_strategy and shares > 0:
 
-                order["orderLegCollection"][0]["quantity"] = 1
+                order["orderLegCollection"][0]["quantity"] = shares
 
                 obj["Qty"] = shares
 
                 obj["Position_Size"] = position_size
+
+                obj["Buy_Price"] = price
 
             else:
 
@@ -147,6 +150,8 @@ class LiveTrader(Tasks):
 
             obj["Position_Size"] = position_data["Position_Size"]
 
+            position_size = position_data["Position_Size"]
+
         # PLACE ORDER ################################################
 
         resp = self.tdameritrade.placeTDAOrder(order)
@@ -159,7 +164,7 @@ class LiveTrader(Tasks):
 
             other = {
                 "Symbol": symbol,
-                "Position_Size": position_data["Position_Size"],
+                "Position_Size": position_size,
                 "Order_Type": side,
                 "Order_Status": "REJECTED",
                 "Strategy": strategy,
@@ -209,24 +214,41 @@ class LiveTrader(Tasks):
 
             IF REJECTED OR CANCELED, THEN QUEUED ORDER IS REMOVED FROM QUEUE AND SENT TO OTHER COLLECTION IN MONGODB.
         """
-        
+
         queued_orders = self.queue.find({"Trader": self.user["Name"], "Order_ID": {
                                         "$ne": None}, "Account_ID": self.account_id})
-        
+
         for queue_order in queued_orders:
-            
+
             spec_order = self.tdameritrade.getSpecificOrder(
                 queue_order["Order_ID"])
+
+            if "error" in spec_order:
+
+                direction = "OPEN" if queue_order["Order_Type"] == "BUY" else "CLOSED"
+                
+                self.logger.WARNING(filename=__class__.__name__, warning=f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {direction} POSITIONS")
+
+                custom = {
+                    "price": queue_order["Buy_Price"],
+                    "shares": queue_order["Qty"]
+                }
+
+                data_integrity = "Assumed"
+
+                self.pushOrder(queue_order, custom, data_integrity)
+
+                continue
 
             new_status = spec_order["status"]
 
             order_type = queue_order["Order_Type"]
-            
+
             # CHECK IF QUEUE ORDER ID EQUALS TDA ORDER ID
             if queue_order["Order_ID"] == spec_order["orderId"]:
 
                 if new_status == "FILLED":
-                    
+
                     self.pushOrder(queue_order, spec_order)
 
                 elif new_status == "CANCELED" or new_status == "REJECTED":
@@ -257,7 +279,7 @@ class LiveTrader(Tasks):
 
     # STEP FOUR
     @exception_handler
-    def pushOrder(self, queue_order, spec_order):
+    def pushOrder(self, queue_order, spec_order, data_integrity = "Reliable"):
         """ METHOD PUSHES ORDER TO EITHER OPEN POSITIONS OR CLOSED POSITIONS COLLECTION IN MONGODB.
             IF BUY ORDER, THEN PUSHES TO OPEN POSITIONS.
             IF SELL ORDER, THEN PUSHES TO CLOSED POSITIONS.
@@ -269,9 +291,17 @@ class LiveTrader(Tasks):
 
         symbol = queue_order["Symbol"]
 
-        shares = int(spec_order["quantity"])
+        if "orderActivityCollection" in spec_order:
 
-        price = spec_order["orderActivityCollection"][0]["executionLegs"][0]["price"]
+            price = spec_order["orderActivityCollection"][0]["executionLegs"][0]["price"]
+
+            shares = int(spec_order["quantity"])
+
+        else:
+
+            price = spec_order["price"]
+
+            shares = int(queue_order["Qty"])
 
         if price < 1:
 
@@ -293,6 +323,7 @@ class LiveTrader(Tasks):
             "Symbol": symbol,
             "Strategy": strategy,
             "Position_Size": position_size,
+            "Data_Integrity": data_integrity,
             "Trader": self.user["Name"],
             "Account_ID": account_id
         }
@@ -436,16 +467,17 @@ class LiveTrader(Tasks):
         Args:
             trade_data ([list]): CONSISTS OF TWO DICTS TOP LEVEL, AND THEIR VALUES AS LISTS CONTAINING ALL THE TRADE DATA FOR EACH STOCK.
         """
-        
+
         # UPDATE ALL ORDER STATUS'S
         self.updateStatus()
-        
+
         # UPDATE USER ATTRIBUTE
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 
         # MAY SET THESE DYNAMICALLY FROM WEB APP
-        forbidden_symbols = self.user["Accounts"][str(self.account_id)]["forbidden_symbols"]
-        
+        forbidden_symbols = self.user["Accounts"][str(
+            self.account_id)]["forbidden_symbols"]
+
         for data in trade_data:
 
             side = data["Side"]
@@ -457,10 +489,10 @@ class LiveTrader(Tasks):
             account_id = data["Account_ID"]
 
             self.updateStrategiesObject(strategy)
-            
+
             # IF SYMBOL NOT FORBIDDEN AND ACCOUNT TYPE (PRIMARY, SECONDARY) IS EQUAL TO THE ACCOUNT TYPE ASSOCIATED WITH THE TDAMERITRADE ACCOUNT TYPE
             if symbol not in forbidden_symbols and self.account_id == account_id:
-                
+
                 # CHECK OPEN POSITIONS AND QUEUE
                 open_position = self.open_positions.find_one(
                     {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
@@ -470,22 +502,24 @@ class LiveTrader(Tasks):
 
                 # BUY ##############################
                 if side == "BUY":
-                    
+
                     if not open_position and not queued:
-                        
+
                         # LIVE TRADE
                         # THIS CHECK IF USER IS ACTIVE. IF NOT ACTIVE, ALL BUYING STOPS
                         if self.user["Accounts"][str(self.account_id)]["Active"]:
-                            
+
                             self.placeOrder(data)
 
                     elif open_position:
 
-                        self.logger.INFO(f"Symbol {symbol} with strategy {strategy} already an open position")
+                        self.logger.INFO(
+                            f"Symbol {symbol} with strategy {strategy} already an open position")
 
                     elif queued:
 
-                        self.logger.INFO(f"Symbol {symbol} with strategy {strategy} already in queue")
+                        self.logger.INFO(
+                            f"Symbol {symbol} with strategy {strategy} already in queue")
 
                 # SELL ##############################
                 elif side == "SELL":
