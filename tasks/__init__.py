@@ -184,7 +184,7 @@ class Tasks:
         # IF STRATEGY DOESNT EXIST IN OBJECT, THEN ADD IT AND SET DEFAULT TO 1 SHARE AND ACTIVE STATUS
         self.users.update(
             {"Name": self.user["Name"], f"Accounts.{self.account_id}.Strategies.{strategy}": {"$exists": False}}, {
-                "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": {"Shares": 1, "Active": True}}}
+                "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": {"Position_Size": 500, "Active": True}}}
         )
 
     def runTasks(self):

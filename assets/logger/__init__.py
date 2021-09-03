@@ -81,7 +81,7 @@ class Logger:
         # LEVEL:DATETIME:FILENAME:WARNING
         log = f"WARNING | {self.getDatetime()} | {filename} | {warning}"
 
-        print(colored(log, "orange"))
+        print(colored(log, "cyan"))
 
         self.log(log)
 

@@ -94,6 +94,7 @@ class LiveTrader(Tasks):
         obj = {
             "Symbol": symbol,
             "Qty": None,
+            "Position_Size": None,
             "Date": getDatetime(),
             "Strategy": strategy,
             "Trader": self.user["Name"],
@@ -103,26 +104,32 @@ class LiveTrader(Tasks):
             "Account_ID": self.account_id
         }
 
-        if side == "BUY" or side == "BUY_TO_OPEN":
+        position_size = None
+
+        if side == "BUY":
 
             # GET SHARES FOR PARTICULAR STRATEGY
             strategies = self.user["Accounts"][str(self.account_id)]["Strategies"]
 
-            shares = int(strategies[strategy]["Shares"])
+            position_size = int(strategies[strategy]["Position_Size"])
+
+            shares = int(position_size/price)
 
             active_strategy = strategies[strategy]["Active"]
 
             if active_strategy and shares > 0:
 
-                order["orderLegCollection"][0]["quantity"] = shares
+                order["orderLegCollection"][0]["quantity"] = 1
 
                 obj["Qty"] = shares
+
+                obj["Position_Size"] = position_size
 
             else:
 
                 return
 
-        elif side == "SELL" or side == "SELL_TO_CLOSE":
+        elif side == "SELL":
 
             buy_qty = position_data["Qty"]
 
@@ -138,6 +145,8 @@ class LiveTrader(Tasks):
 
             obj["Qty"] = buy_qty
 
+            obj["Position_Size"] = position_data["Position_Size"]
+
         # PLACE ORDER ################################################
 
         resp = self.tdameritrade.placeTDAOrder(order)
@@ -150,6 +159,7 @@ class LiveTrader(Tasks):
 
             other = {
                 "Symbol": symbol,
+                "Position_Size": position_data["Position_Size"],
                 "Order_Type": side,
                 "Order_Status": "REJECTED",
                 "Strategy": strategy,
@@ -277,9 +287,12 @@ class LiveTrader(Tasks):
 
         account_id = queue_order["Account_ID"]
 
+        position_size = queue_order["Position_Size"]
+
         obj = {
             "Symbol": symbol,
             "Strategy": strategy,
+            "Position_Size": position_size,
             "Trader": self.user["Name"],
             "Account_ID": account_id
         }

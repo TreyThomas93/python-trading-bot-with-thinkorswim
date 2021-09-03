@@ -100,7 +100,7 @@ class Gmail():
         # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
 
         for payload in payloads:
-
+            
             try:
 
                 seperate = payload.split(":")
@@ -154,7 +154,7 @@ class Gmail():
 
             except ValueError:
 
-                self.logger.ERROR(error=f"EMAIL FORMAT ERROR: {payload}")
+                self.logger.WARNING(os.path.basename(__class__.__name__), f"EMAIL FORMAT ERROR: {payload}")
 
             except Exception:
 
@@ -187,7 +187,7 @@ class Gmail():
                     for payload in result['payload']["headers"]:
 
                         if payload["name"] == "Subject":
-
+                            
                             payloads.append(payload["value"].strip())
 
                     # MOVE EMAIL TO TRASH FOLDER
