@@ -84,13 +84,17 @@ class Tasks:
 
         for position in closed_positions:
 
-            buy_price = position["Buy_Price"]
+            sell_date = position["Sell_Date"].strftime("%Y-%m-%d")
+            
+            if sell_date == dt_only:
 
-            sell_price = position["Sell_Price"]
+                buy_price = position["Buy_Price"]
 
-            qty = position["Qty"]
+                sell_price = position["Sell_Price"]
 
-            profit_loss += ((sell_price * qty) - (buy_price * qty))
+                qty = position["Qty"]
+
+                profit_loss += ((sell_price * qty) - (buy_price * qty))
 
         if not profit_loss_found:
 
