@@ -2,9 +2,7 @@
 
 ## Description
 
-- This program is an automated trading bot that uses TDAmeritrades Thinkorswim trading platform's scanners and alerts systems to place trades dynamically using the TDAmeritrade API.
-
-- _ATTENTION:_ This branch is a simpler and grossly reduced version of the original branch. It allows for a very basic and simple code base to focus on the main components of the program. The main things removed from the program were methods that were used to collect data for a web app I created to display my program results. Therefore, it wasn't necessary for the program to work properly for it's intended purposes. I also removed the OPTIONS handler. You could always re-add these methods and functionality to your code. I also revised on how the scanner names are formated and removed unnecessary collections in Mongo, so please check out the rest of this updated README.
+- This program is an automated trading bot that uses TDAmeritrades Thinkorswim trading platform's scanners and alerts systems to place trades dynamically using the TDAmeritrade API. This handles both EQUITY and OPTIONS.
 
 ## Table Of Contents
 
@@ -137,8 +135,6 @@
 ![Users Collection](assets/img/Users_Collection_Setup.png)
 
 - The image above shows the structure of how a user is setup. In the Accounts object, the key is the account number, and the value is another object with all of that accounts info and the tokens. All of this will auto populate into the users collection once you create your API tokens for TDAmeritrade using this [repo](https://github.com/TreyThomas93/TDA-Token) here.
-
-- _ATTENTION:_ I have grossly reduced the amount of data needed to be stored in these collections. I even reduced the amount of collections overall. I minimalized and cut out the unnecessary parts that only served to represent data within a web app I created. Therefore, the code is simpler and easier to break down. If you want to add more features and such, then you obviously can do so.
 
 ### <a name="gmail"></a> Gmail
 

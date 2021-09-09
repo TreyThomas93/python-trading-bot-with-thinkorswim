@@ -10,6 +10,7 @@ from google.oauth2.credentials import Credentials
 import os.path
 import os
 from pprint import pprint
+from datetime import datetime
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -61,7 +62,7 @@ class Gmail():
                 self.creds.refresh(Request())
 
             if self.creds != None:
-                
+
                 # Save the credentials for the next run
                 with open(self.token_file, 'w') as token:
 
@@ -83,6 +84,46 @@ class Gmail():
 
             return False
 
+    def handleOption(self, symbol):
+
+        symbol = symbol.replace(".", "", 1).strip()
+
+        ending_index = 0
+
+        int_found = False
+
+        for index, char in enumerate(symbol):
+
+            try:
+
+                int(char)
+
+                int_found = True
+
+            except:
+
+                if not int_found:
+
+                    ending_index = index
+
+        exp = symbol[ending_index + 1:]
+
+        year = exp[:2]
+
+        month = exp[2:4]
+
+        day = exp[4:6]
+
+        option_type = "CALL" if "C" in exp else "PUT" 
+
+        # .AA201211C5.5
+
+        # AA_121120C5.5
+
+        pre_symbol = f"{symbol[:ending_index + 1]}_{month}{day}{year}{exp[6:]}"
+
+        return symbol[:ending_index + 1], pre_symbol, datetime.strptime(f"{year}-{month}-{day}", "%y-%m-%d"), option_type
+
     def extractSymbolsFromEmails(self, payloads):
         """ METHOD TAKES SUBJECT LINES OF THE EMAILS WITH THE SYMBOLS AND SCANNER NAMES AND EXTRACTS THE NEEDED THE INFO FROM THEM.
             NEEDED INFO: Symbol, Strategy, Side(Buy/Sell), Account ID
@@ -100,7 +141,7 @@ class Gmail():
         # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
 
         for payload in payloads:
-            
+
             try:
 
                 seperate = payload.split(":")
@@ -133,9 +174,23 @@ class Gmail():
                                         obj = {
                                             "Symbol": symbol.strip(),
                                             "Side": side.upper().strip(),
-                                            "Strategy": strategy.replace(".", " ").strip(),
+                                            "Strategy": strategy.replace(".", " ").upper().strip(),
                                             "Account_ID": account_id
                                         }
+
+                                        # IF THIS IS AN OPTION
+                                        if "." in symbol:
+
+                                            symbol, pre_symbol, exp_date, option_type = self.handleOption(
+                                                symbol)
+
+                                            obj["Symbol"] = symbol
+
+                                            obj["Pre_Symbol"] = pre_symbol
+
+                                            obj["Exp_Date"] = exp_date
+
+                                            obj["Option_Type"] = option_type
 
                                         trade_data.append(obj)
 
@@ -154,7 +209,8 @@ class Gmail():
 
             except ValueError:
 
-                self.logger.WARNING(os.path.basename(__class__.__name__), f"EMAIL FORMAT ERROR: {payload}")
+                self.logger.WARNING(__class__.__name__,
+                                    f"EMAIL FORMAT ERROR: {payload}")
 
             except Exception:
 
@@ -172,10 +228,10 @@ class Gmail():
         payloads = []
 
         try:
-            
+
             # GETS LIST OF ALL EMAILS
             results = self.service.users().messages().list(userId='me').execute()
-            
+
             if results['resultSizeEstimate'] != 0:
 
                 # {'id': '173da9a232284f0f', 'threadId': '173da9a232284f0f'}
@@ -187,7 +243,7 @@ class Gmail():
                     for payload in result['payload']["headers"]:
 
                         if payload["name"] == "Subject":
-                            
+
                             payloads.append(payload["value"].strip())
 
                     # MOVE EMAIL TO TRASH FOLDER

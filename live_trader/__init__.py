@@ -61,31 +61,27 @@ class LiveTrader(Tasks):
 
         strategy = trade_data["Strategy"]
 
-        resp = self.tdameritrade.getQuote(symbol)
+        if "Pre_Symbol" in trade_data:
 
-        price = float(resp[symbol]["lastPrice"])
-
-        if price < 1:
-
-            price = round(price, 4)
+            asset_type = "OPTION"
 
         else:
 
-            price = round(price, 2)
+            asset_type = "EQUITY"
 
         order = {
             "orderType": "LIMIT",
-            "price": price,
-            "session": "SEAMLESS",
-            "duration": "GOOD_TILL_CANCEL",
+            "price": None,
+            "session": "SEAMLESS" if asset_type == "EQUITY" else "NORMAL",
+            "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
             "orderStrategyType": "SINGLE",
             "orderLegCollection": [
                 {
                     "instruction": side,
                     "quantity": None,
                     "instrument": {
-                        "symbol": symbol,
-                        "assetType": "EQUITY"
+                        "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
+                        "assetType": asset_type,
                     }
                 }
             ]
@@ -97,26 +93,50 @@ class LiveTrader(Tasks):
             "Position_Size": None,
             "Date": getDatetime(),
             "Strategy": strategy,
-            "Trader": self.user["Name"],
+            "Trader": "Trey Thomas",
             "Order_ID": None,
             "Order_Status": None,
             "Order_Type": side,
-            "Account_ID": self.account_id
+            "Asset_Type": asset_type,
+            "Account_ID": self.account_id,
         }
+
+        if asset_type == "OPTION":
+
+            obj["Pre_Symbol"] = trade_data["Pre_Symbol"]
+
+            obj["Exp_Date"] = trade_data["Exp_Date"]
+
+            obj["Option_Type"] = trade_data["Option_Type"]
+
+            order["orderLegCollection"][0]["instrument"]["putCall"] = trade_data["Option_Type"]
 
         position_size = None
 
-        if side == "BUY":
+        if side == "BUY" or side == "BUY_TO_OPEN":
+
+            resp = self.tdameritrade.getQuote(symbol)
+
+            price = float(resp[symbol]["bidPrice"])
+
+            order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
             # GET SHARES FOR PARTICULAR STRATEGY
             strategies = self.user["Accounts"][str(
                 self.account_id)]["Strategies"]
 
+            if strategy not in strategies:
+
+                self.updateStrategiesObject(strategy)
+
+                strategies = self.mongo.users.find_one({"Name": self.user["Name"]})["Accounts"][str(
+                self.account_id)]["Strategies"]
+
             position_size = int(strategies[strategy]["Position_Size"])
 
-            shares = int(position_size/price)
-
             active_strategy = strategies[strategy]["Active"]
+
+            shares = int(position_size/price)
 
             if active_strategy and shares > 0:
 
@@ -132,28 +152,27 @@ class LiveTrader(Tasks):
 
                 return
 
-        elif side == "SELL":
+        elif side == "SELL" or side == "SELL_TO_CLOSE":
 
-            buy_qty = position_data["Qty"]
+            resp = self.tdameritrade.getQuote(symbol)
 
-            buy_price = position_data["Buy_Price"]
+            price = float(resp[symbol]["askPrice"])
 
-            buy_date = position_data["Date"]
+            order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
-            order["orderLegCollection"][0]["quantity"] = buy_qty
+            order["orderLegCollection"][0]["quantity"] = position_data["Qty"]
 
-            obj["Buy_Price"] = buy_price
+            obj["Buy_Price"] = position_data["Buy_Price"]
 
-            obj["Buy_Date"] = buy_date
+            obj["Buy_Date"] = position_data["Date"]
 
-            obj["Qty"] = buy_qty
+            obj["Qty"] = position_data["Qty"]
 
             obj["Position_Size"] = position_data["Position_Size"]
 
             position_size = position_data["Position_Size"]
-
         # PLACE ORDER ################################################
-
+        
         resp = self.tdameritrade.placeTDAOrder(order)
 
         status_code = resp.status_code
@@ -226,8 +245,9 @@ class LiveTrader(Tasks):
             if "error" in spec_order:
 
                 direction = "OPEN" if queue_order["Order_Type"] == "BUY" else "CLOSED"
-                
-                self.logger.WARNING(filename=__class__.__name__, warning=f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {direction} POSITIONS")
+
+                self.logger.WARNING(
+                    filename=__class__.__name__, warning=f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {direction} POSITIONS")
 
                 custom = {
                     "price": queue_order["Buy_Price"],
@@ -279,7 +299,7 @@ class LiveTrader(Tasks):
 
     # STEP FOUR
     @exception_handler
-    def pushOrder(self, queue_order, spec_order, data_integrity = "Reliable"):
+    def pushOrder(self, queue_order, spec_order, data_integrity="Reliable"):
         """ METHOD PUSHES ORDER TO EITHER OPEN POSITIONS OR CLOSED POSITIONS COLLECTION IN MONGODB.
             IF BUY ORDER, THEN PUSHES TO OPEN POSITIONS.
             IF SELL ORDER, THEN PUSHES TO CLOSED POSITIONS.
@@ -319,16 +339,27 @@ class LiveTrader(Tasks):
 
         position_size = queue_order["Position_Size"]
 
+        asset_type = queue_order["Asset_Type"]
+
         obj = {
             "Symbol": symbol,
             "Strategy": strategy,
             "Position_Size": position_size,
             "Data_Integrity": data_integrity,
             "Trader": self.user["Name"],
-            "Account_ID": account_id
+            "Account_ID": account_id,
+            "Asset_Type": asset_type
         }
 
-        if order_type == "BUY":
+        if asset_type == "OPTION":
+
+            obj["Pre_Symbol"] = queue_order["Pre_Symbol"]
+
+            obj["Exp_Date"] = queue_order["Exp_Date"]
+
+            obj["Option_Type"] = queue_order["Option_Type"]
+
+        if order_type == "BUY" or order_type == "BUY_TO_OPEN":
 
             obj["Qty"] = shares
 
@@ -359,12 +390,12 @@ class LiveTrader(Tasks):
 
                 self.logger.ERROR()
 
-            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
+            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
 
             self.logger.INFO(
                 f"{order_type} ORDER For {symbol} - TRADER: {self.user['Name']}", True)
 
-        elif order_type == "SELL":
+        elif order_type == "SELL" or order_type == "SELL_TO_OPEN":
 
             position = self.open_positions.find_one(
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
@@ -407,7 +438,7 @@ class LiveTrader(Tasks):
 
             obj["ROV"] = rov
 
-            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Buy Price: ${position['Buy_Price']} \n Buy Date: {position['Date']} \n Sell Price: ${price} \n Sell Date: {getDatetime()} \n Strategy: {strategy} \n ROV: {rov}% \n Sold For: {sold_for} \n Trader: {self.user['Name']} \n"
+            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Buy Price: ${position['Buy_Price']} \n Buy Date: {position['Date']} \n Sell Price: ${price} \n Sell Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n ROV: {rov}% \n Sold For: {sold_for} \n Trader: {self.user['Name']} \n"
 
             # ADD TO CLOSED POSITIONS
             try:
@@ -488,8 +519,6 @@ class LiveTrader(Tasks):
 
             account_id = data["Account_ID"]
 
-            self.updateStrategiesObject(strategy)
-
             # IF SYMBOL NOT FORBIDDEN AND ACCOUNT TYPE (PRIMARY, SECONDARY) IS EQUAL TO THE ACCOUNT TYPE ASSOCIATED WITH THE TDAMERITRADE ACCOUNT TYPE
             if symbol not in forbidden_symbols and self.account_id == account_id:
 
@@ -501,7 +530,7 @@ class LiveTrader(Tasks):
                     {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
 
                 # BUY ##############################
-                if side == "BUY":
+                if side == "BUY" or side == "BUY_TO_OPEN":
 
                     if not open_position and not queued:
 
@@ -522,7 +551,7 @@ class LiveTrader(Tasks):
                             f"Symbol {symbol} with strategy {strategy} already in queue")
 
                 # SELL ##############################
-                elif side == "SELL":
+                elif side == "SELL" or side == "SELL_TO_CLOSE":
 
                     if open_position and not queued:
 

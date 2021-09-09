@@ -18,6 +18,8 @@ class Tasks:
 
         self.midnight = False
 
+        self.check_options = False
+
         self.isAlive = True
 
     @exception_handler
@@ -85,7 +87,7 @@ class Tasks:
         for position in closed_positions:
 
             sell_date = position["Sell_Date"].strftime("%Y-%m-%d")
-            
+
             if sell_date == dt_only:
 
                 buy_price = position["Buy_Price"]
@@ -105,7 +107,6 @@ class Tasks:
                 "Profit_Loss": profit_loss
             })
 
-    # KILL QUEUE ORDER IF SITTING IN QUEUE GREATER THAN 2 HOURS
     @ exception_handler
     def killQueueOrder(self):
         """ METHOD QUERIES ORDERS IN QUEUE AND LOOKS AT INSERTION TIME.
@@ -176,7 +177,35 @@ class Tasks:
 
                     self.no_ids_list.remove(order["Symbol"])
 
-    # ADD NEW STRATEGIES TO OBJECT
+    @exception_handler
+    def sellOptionsAtExpiration(self):
+        """ METHOD SELLS OUT OPTIONS IF ONE DAY BEFORE EXPIRATION
+        """
+
+        open_positions = self.open_positions.find(
+            {"Trader": self.user["Name"], "Asset_Type": "OPTION"})
+
+        dt = getDatetime()
+
+        for position in open_positions:
+
+            day_before = (position["Exp_Date"] -
+                          timedelta(days=1)).strftime("%Y-%m-%d")
+
+            if day_before == dt.strftime("%Y-%m-%d"):
+
+                trade_data = {
+                    "Symbol": position["Symbol"],
+                    "Pre_Symbol": position["Pre_Symbol"],
+                    "Side": "SELL_TO_CLOSE",
+                    "Option_Type": position["Option_Type"],
+                    "Strategy": position["Strategy"],
+                    "Asset_Type": position["Asset_Type"],
+                    "Exp_Date": position["Exp_Date"]
+                }
+
+                self.placeOrder(trade_data, position)
+
     @ exception_handler
     def updateStrategiesObject(self, strategy):
         """ METHOD UPDATES STRATEGIES OBJECT IN MONGODB WITH NEW STRATEGIES.
@@ -220,10 +249,10 @@ class Tasks:
 
             tm = dt_central.strftime("%H:%M:%S")
 
-            weekdays = ["Sat", "Sun"]
+            weekends = ["Sat", "Sun"]
 
             # IF CURRENT TIME GREATER THAN 8PM AND LESS THAN 4AM, OR DAY IS WEEKEND, THEN RETURN 60 SECONDS
-            if tm > "20:00" or tm < "04:00" or day in weekdays:
+            if tm > "20:00" or tm < "04:00" or day in weekends:
 
                 return 60
 
@@ -243,10 +272,22 @@ class Tasks:
 
                 dt_central = dt.astimezone(pytz.timezone('US/Central'))
 
-                # IF MIDNIGHT, ADD BALANCE, PROFIT/LOSS TO HISTORY
-                midnight = dt_central.time().strftime("%H:%M")
+                tm = dt_central.time().strftime("%H:%M")
 
-                if midnight == "23:55":
+                if tm == "08:30":  # set this based on YOUR timezone
+
+                    if not self.check_options:
+
+                        self.sellOptionsAtExpiration()
+
+                        self.check_options = True
+
+                else:
+
+                    self.check_options = False
+
+                # IF MIDNIGHT, ADD BALANCE, PROFIT/LOSS TO HISTORY
+                if tm == "23:55":
 
                     if not self.midnight:
 

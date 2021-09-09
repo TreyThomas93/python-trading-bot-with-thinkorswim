@@ -191,10 +191,10 @@ if __name__ == "__main__":
 
         tm = dt_central.strftime("%H:%M:%S")
 
-        weekdays = ["Sat", "Sun"]
+        weekends = ["Sat", "Sun"]
 
         # IF CURRENT TIME GREATER THAN 8PM AND LESS THAN 4AM, OR DAY IS WEEKEND, THEN RETURN 60 SECONDS
-        if tm > "20:00" or tm < "04:00" or day in weekdays:
+        if tm > "20:00" or tm < "04:00" or day in weekends:
 
             return 60
 
