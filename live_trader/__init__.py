@@ -150,6 +150,8 @@ class LiveTrader(Tasks):
 
             else:
 
+                self.logger.WARNING(f"{side} ORDER STOPPED: STRATEGY STATUS - {active_strategy} SHARES - {shares}")
+
                 return
 
         elif side == "SELL" or side == "SELL_TO_CLOSE":
