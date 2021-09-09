@@ -115,10 +115,12 @@ class LiveTrader(Tasks):
 
         if side == "BUY" or side == "BUY_TO_OPEN":
 
-            resp = self.tdameritrade.getQuote(symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
-            
-            price = float(resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
-            
+            resp = self.tdameritrade.getQuote(
+                symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
+
+            price = float(
+                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
+
             order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
             # GET SHARES FOR PARTICULAR STRATEGY
@@ -130,7 +132,7 @@ class LiveTrader(Tasks):
                 self.updateStrategiesObject(strategy)
 
                 strategies = self.mongo.users.find_one({"Name": self.user["Name"]})["Accounts"][str(
-                self.account_id)]["Strategies"]
+                    self.account_id)]["Strategies"]
 
             position_size = int(strategies[strategy]["Position_Size"])
 
@@ -150,7 +152,8 @@ class LiveTrader(Tasks):
 
             else:
 
-                self.logger.WARNING(f"{side} ORDER STOPPED: STRATEGY STATUS - {active_strategy} SHARES - {shares}")
+                self.logger.WARNING(
+                    __class__.__name__, f"{side} ORDER STOPPED: STRATEGY STATUS - {active_strategy} SHARES - {shares}")
 
                 return
 
@@ -174,7 +177,7 @@ class LiveTrader(Tasks):
 
             position_size = position_data["Position_Size"]
         # PLACE ORDER ################################################
-        
+
         resp = self.tdameritrade.placeTDAOrder(order)
 
         status_code = resp.status_code
