@@ -86,7 +86,7 @@ class TDAmeritrade:
             token = self.getNewTokens(user["Accounts"][self.account_id])
 
             if token:
-                
+
                 # ADD NEW TOKEN DATA TO USER DATA IN DB
                 self.users.update_one({"Name": self.user["Name"]}, {
                     "$set": {f"Accounts.{self.account_id}.expires_in": token['expires_in'], f"Accounts.{self.account_id}.access_token": token["access_token"], f"Accounts.{self.account_id}.created_at": time.time()}})
@@ -108,7 +108,7 @@ class TDAmeritrade:
         days_left = (refresh_exp - now).total_seconds() / 60 / 60 / 24
 
         if days_left <= 1:
-            
+
             token = self.getNewTokens(
                 user["Accounts"][self.account_id], refresh_type="Refresh Token")
 
@@ -142,7 +142,7 @@ class TDAmeritrade:
         Returns:
             [json]: NEW TOKEN DATA
         """
-            
+
         data = {'grant_type': 'refresh_token',
                 'refresh_token': token["refresh_token"],
                 'client_id': self.client_id}
@@ -154,9 +154,9 @@ class TDAmeritrade:
         # print(f"REFRESHING TOKEN: {data} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {self.account_id}")
 
         resp = requests.post('https://api.tdameritrade.com/v1/oauth2/token',
-                                headers={
-                                    'Content-Type': 'application/x-www-form-urlencoded'},
-                                data=data)
+                             headers={
+                                 'Content-Type': 'application/x-www-form-urlencoded'},
+                             data=data)
 
         if resp.status_code != 200:
 

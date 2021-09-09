@@ -115,10 +115,10 @@ class LiveTrader(Tasks):
 
         if side == "BUY" or side == "BUY_TO_OPEN":
 
-            resp = self.tdameritrade.getQuote(symbol)
-
-            price = float(resp[symbol]["bidPrice"])
-
+            resp = self.tdameritrade.getQuote(symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
+            
+            price = float(resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
+            
             order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
             # GET SHARES FOR PARTICULAR STRATEGY
