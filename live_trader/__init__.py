@@ -93,7 +93,7 @@ class LiveTrader(Tasks):
             "Position_Size": None,
             "Date": getDatetime(),
             "Strategy": strategy,
-            "Trader": "Trey Thomas",
+            "Trader": self.user["Name"],
             "Order_ID": None,
             "Order_Status": None,
             "Order_Type": side,
