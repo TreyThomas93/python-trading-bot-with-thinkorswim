@@ -39,9 +39,9 @@ class Tasks:
 
         dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-        dt_central = dt.astimezone(pytz.timezone('US/Central'))
+        dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-        dt = datetime.strftime(dt_central, "%Y-%m-%d %H:00")
+        dt = datetime.strftime(dt_eastern, "%Y-%m-%d %H:00")
 
         dt_only = dt.split(" ")[0].strip()
 
@@ -118,13 +118,14 @@ class Tasks:
 
         dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-        dt_central = dt.astimezone(pytz.timezone('US/Central'))
+        dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
+        dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
         two_hours_ago = datetime.strptime(datetime.strftime(
-            dt_central - timedelta(hours=2), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+            dt_eastern - timedelta(hours=2), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
         ten_minutes_ago = datetime.strptime(datetime.strftime(
-            dt_central - timedelta(minutes=10), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+            dt_eastern - timedelta(minutes=10), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
         for order in queue_orders:
 
@@ -136,7 +137,7 @@ class Tasks:
 
             forbidden = ["REJECTED", "CANCELED", "FILLED"]
 
-            if two_hours_ago > order_date and (order_type == "BUY" or order_type == "BUY_TO_OPEN") and id != None and order["Order_Status"] not in forbidden:
+            if ten_minutes_ago > order_date and (order_type == "BUY" or order_type == "BUY_TO_OPEN") and id != None and order["Order_Status"] not in forbidden:
 
                 # FIRST CANCEL ORDER
                 resp = self.tdameritrade.cancelOrder(id)
@@ -236,18 +237,18 @@ class Tasks:
             WEEKENDS: 60 SECONDS
             WEEKDAYS(2000 - 0400 ET): 60 SECONDS
 
-            EVERYTHING WILL BE BASED OFF CENTRAL TIME
+            EVERYTHING WILL BE BASED OFF EASTERN TIME
 
             OBJECTIVE IS TO FREE UP UNNECESSARY SERVER USAGE
             """
 
             dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-            dt_central = dt.astimezone(pytz.timezone('US/Central'))
+            dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-            day = dt_central.strftime("%a")
+            day = dt_eastern.strftime("%a")
 
-            tm = dt_central.strftime("%H:%M:%S")
+            tm = dt_eastern.strftime("%H:%M:%S")
 
             weekends = ["Sat", "Sun"]
 
@@ -270,9 +271,9 @@ class Tasks:
 
                 dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-                dt_central = dt.astimezone(pytz.timezone('US/Central'))
+                dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-                tm = dt_central.time().strftime("%H:%M")
+                tm = dt_eastern.time().strftime("%H:%M")
 
                 if tm == "08:30":  # set this based on YOUR timezone
 
@@ -286,8 +287,8 @@ class Tasks:
 
                     self.check_options = False
 
-                # IF MIDNIGHT, ADD BALANCE, PROFIT/LOSS TO HISTORY
-                if tm == "23:55":
+                # IF 4:30PM EST, ADD BALANCE, PROFIT/LOSS TO HISTORY
+                if tm == "16:30":
 
                     if not self.midnight:
 
