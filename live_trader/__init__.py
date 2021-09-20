@@ -185,9 +185,9 @@ class LiveTrader(Tasks):
 
             order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
-            order["childOrderStrategies"][0]["price"] = round(price*1.2, 2) if price >= 1 else round(price, 4)
+            order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(price*1.2, 2) if price >= 1 else round(price, 4)
 
-            order["childOrderStrategies"][0]["stopPrice"] = round(price*.9, 2) if price >= 1 else round(price, 4)
+            order["childOrderStrategies"][1]["stopPrice"] = round(price*.9, 2) if price >= 1 else round(price, 4)
 
 
             # GET SHARES FOR PARTICULAR STRATEGY
@@ -210,6 +210,10 @@ class LiveTrader(Tasks):
             if active_strategy and shares > 0:
 
                 order["orderLegCollection"][0]["quantity"] = shares
+
+                order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = shares
+
+                order["childOrderStrategies"][1]["orderLegCollection"][0]["quantity"] = shares
 
                 obj["Qty"] = shares
 
