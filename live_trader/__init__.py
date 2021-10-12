@@ -166,7 +166,7 @@ class LiveTrader(Tasks):
                 symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
 
             price = float(
-                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
+                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["askPrice"])
 
             stop_price = (price*0.93)
 
