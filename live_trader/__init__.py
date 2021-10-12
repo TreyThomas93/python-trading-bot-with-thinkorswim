@@ -170,7 +170,7 @@ class LiveTrader(Tasks):
 
             stop_price = (price*0.93)
 
-            take_profit_price1 = (price*1.15)
+            take_profit_price1 = (price*1.10)
 
             order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
