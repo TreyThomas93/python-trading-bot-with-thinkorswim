@@ -90,7 +90,7 @@ class LiveTrader(Tasks):
         order =   {
                   "orderStrategyType": "TRIGGER",
                   "session": "NORMAL",
-                  "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
+                  "duration": "GOOD_TILL_CANCEL",
                   "orderType": "LIMIT",
                   "price": None,
                   "orderLegCollection": [{
@@ -105,7 +105,7 @@ class LiveTrader(Tasks):
                                       "childOrderStrategies": [
                                                               {"orderStrategyType": "SINGLE",
                                                               "session": "NORMAL",
-                                                              "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
+                                                              "duration": "GOOD_TILL_CANCEL",
                                                               "orderType": "LIMIT",
                                                               "price": None,
                                                               "orderLegCollection": [{
@@ -116,7 +116,7 @@ class LiveTrader(Tasks):
                                                                                                 "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"], }}]},
                                                               {"orderStrategyType": "SINGLE",
                                                               "session": "NORMAL",
-                                                              "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
+                                                              "duration": "GOOD_TILL_CANCEL",
                                                               "orderType": "STOP",
                                                               "stopPrice": None,
                                                               "orderLegCollection": [{
@@ -168,15 +168,16 @@ class LiveTrader(Tasks):
             price = float(
                 resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
 
-            stop_price = (price*0.9)
+            stop_price = (price*0.93)
 
-            take_profit_price = (price*1.2)
+            take_profit_price1 = (price*1.15)
 
             order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
-            order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price, 2) if price >= 1 else round(take_profit_price, 2)
+            order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price1, 2) if price >= 1 else round(take_profit_price1, 2)
 
             order["childOrderStrategies"][0]["childOrderStrategies"][1]["stopPrice"] = round(stop_price, 2) if price >= 1 else round(stop_price, 2)
+
             # GET SHARES FOR PARTICULAR STRATEGY
 
             strategies = self.user["Accounts"][str(
@@ -193,13 +194,25 @@ class LiveTrader(Tasks):
 
             active_strategy = strategies[strategy]["Active"]
 
-            shares = int(position_size/price)
+            if asset_type == "EQUITY":
+
+                shares = int(position_size/price)
+
+            else:
+
+                shares = int((position_size/100)/price)
 
             if active_strategy and shares > 0:
 
                 order["orderLegCollection"][0]["quantity"] = shares
 
-                order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = shares
+                if shares > 1:
+
+                    order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = (shares-1)
+
+                else:
+
+                    order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = shares
 
                 order["childOrderStrategies"][0]["childOrderStrategies"][1]["orderLegCollection"][0]["quantity"] = shares
 
