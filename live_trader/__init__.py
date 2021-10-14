@@ -211,15 +211,36 @@ class LiveTrader(Tasks):
             price = float(
                 resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["askPrice"])
 
-            stop_price = (price*0.88)
-
-            take_profit_price1 = (price*1.25)
-
             order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
-            order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price1, 2) if price >= 1 else round(take_profit_price1, 2)
 
-            order["childOrderStrategies"][0]["childOrderStrategies"][1]["stopPrice"] = round(stop_price, 2) if price >= 1 else round(stop_price, 2)
+# For OCO Orders, use this code
+
+            stop_price = (price*0.88)
+
+            take_profit_price = (price*1.25)
+
+            if asset_type == "EQUITY":
+
+                order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price, 2) if price >= 1 else round(take_profit_price, 4)
+
+                order["childOrderStrategies"][0]["childOrderStrategies"][1]["stopPrice"] = round(stop_price, 2) if price >= 1 else round(stop_price, 4)
+
+
+            else:
+                order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price, 2) if price >= 1 else round(take_profit_price, 2)
+
+                order["childOrderStrategies"][0]["childOrderStrategies"][1]["stopPrice"] = round(stop_price, 2) if price >= 1 else round(stop_price, 2)
+
+
+
+# If using a TRAILINGSTOP, use this code
+#            trail_stop = 7
+#            order["childOrderStrategies"][0]["stopPriceOffset"] = round(trail_stop, 2) if price >= 1 else round(trail_stop, 2)
+
+
+
+
 
             # GET SHARES FOR PARTICULAR STRATEGY
 
@@ -249,6 +270,8 @@ class LiveTrader(Tasks):
 
                 order["orderLegCollection"][0]["quantity"] = shares
 
+
+# For OCO Orders, use this code
                 if shares > 1:
 
                     order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = (shares-1)
@@ -258,6 +281,12 @@ class LiveTrader(Tasks):
                     order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = shares
 
                 order["childOrderStrategies"][0]["childOrderStrategies"][1]["orderLegCollection"][0]["quantity"] = shares
+
+
+# For TRAILINGSTOP, use this code
+
+#                     order["childOrderStrategies"][0]["quantity"] = shares
+
 
                 obj["Qty"] = shares
 
