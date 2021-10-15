@@ -71,7 +71,7 @@ class LiveTrader(Tasks):
 
 ################## Set your order_type: Standard, Trailing_Stop, OCO
 
-        order_type = "Trailing_Stop"
+        order_type = "OCO"
 
         if order_type == "Standard":
 

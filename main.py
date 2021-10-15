@@ -171,30 +171,30 @@ if __name__ == "__main__":
 
     def selectSleep():
         """
-        PRE-MARKET(0400 - 0930 ET): 5 SECONDS
+        PRE-MARKET(0500 - 0930 ET): 5 SECONDS
         MARKET OPEN(0930 - 1600 ET): 5 SECONDS
-        AFTER MARKET(1600 - 2000 ET): 5 SECONDS
+        AFTER MARKET(1600 - 2100 ET): 5 SECONDS
 
         WEEKENDS: 60 SECONDS
         WEEKDAYS(2000 - 0400 ET): 60 SECONDS
 
-        EVERYTHING WILL BE BASED OFF CENTRAL TIME
+        EVERYTHING WILL BE BASED OFF EASTERN TIME
 
         OBJECTIVE IS TO FREE UP UNNECESSARY SERVER USAGE
         """
 
         dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-        dt_central = dt.astimezone(pytz.timezone('US/Central'))
+        dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-        day = dt_central.strftime("%a")
+        day = dt_eastern.strftime("%a")
 
-        tm = dt_central.strftime("%H:%M:%S")
+        tm = dt_eastern.strftime("%H:%M:%S")
 
         weekends = ["Sat", "Sun"]
 
-        # IF CURRENT TIME GREATER THAN 8PM AND LESS THAN 4AM, OR DAY IS WEEKEND, THEN RETURN 60 SECONDS
-        if tm > "20:00" or tm < "04:00" or day in weekends:
+        # IF CURRENT TIME GREATER THAN 9PM AND LESS THAN 5AM, OR DAY IS WEEKEND, THEN RETURN 60 SECONDS
+        if tm > "21:00" or tm < "05:00" or day in weekends:
 
             return 60
 
@@ -210,5 +210,5 @@ if __name__ == "__main__":
         while True:
 
             main.run()
-            
+
             time.sleep(selectSleep())

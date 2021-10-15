@@ -7,7 +7,7 @@ def getDatetime():
 
     dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-    dt_central = dt.astimezone(pytz.timezone('US/Central'))
+    dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-    return datetime.strptime(dt_central.strftime(
+    return datetime.strptime(dt_eastern.strftime(
         "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
