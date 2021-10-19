@@ -2,10 +2,11 @@ from assets.current_datetime import getDatetime
 from tasks import Tasks
 from threading import Thread
 from assets.exception_handler import exception_handler
+from live_trader.order_builder import OrderBuilder
 from pprint import pprint
 
 
-class LiveTrader(Tasks):
+class LiveTrader(Tasks, OrderBuilder):
 
     def __init__(self, user, mongo, push, logger, account_id, tdameritrade):
         """
@@ -41,6 +42,8 @@ class LiveTrader(Tasks):
 
         self.no_ids_list = []
 
+        OrderBuilder.init(self)
+
         Tasks.__init__(self)
 
         Thread(target=self.runTasks, daemon=True).start()
@@ -69,23 +72,27 @@ class LiveTrader(Tasks):
 
             asset_type = "EQUITY"
 
-        order = {
-            "orderType": "LIMIT",
-            "price": None,
-            "session": "SEAMLESS" if asset_type == "EQUITY" else "NORMAL",
-            "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
-            "orderStrategyType": "SINGLE",
-            "orderLegCollection": [
-                {
-                    "instruction": side,
-                    "quantity": None,
-                    "instrument": {
-                        "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
-                        "assetType": asset_type,
-                    }
-                }
-            ]
-        }
+        # order = {
+        #     "orderType": "LIMIT",
+        #     "price": None,
+        #     "session": "SEAMLESS" if asset_type == "EQUITY" else "NORMAL",
+        #     "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
+        #     "orderStrategyType": "SINGLE",
+        #     "orderLegCollection": [
+        #         {
+        #             "instruction": side,
+        #             "quantity": None,
+        #             "instrument": {
+        #                 "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
+        #                 "assetType": asset_type,
+        #             }
+        #         }
+        #     ]
+        # }
+
+        order_build_type = "Standard"
+
+        order = self.standardOrder(trade_data, asset_type) if order_build_type == "Standard" else self.OCOorder(trade_data, asset_type)
 
         obj = {
             "Symbol": symbol,

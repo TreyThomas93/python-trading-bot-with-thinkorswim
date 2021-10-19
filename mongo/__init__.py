@@ -3,6 +3,8 @@ from pprint import pprint
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
+import certifi
+ca = certifi.where()
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,8 +29,8 @@ class MongoDB:
 
             if MONGO_URI != None:
 
-                self.client = MongoClient(MONGO_URI, authSource="admin")
-
+                self.client = MongoClient(MONGO_URI, authSource="admin", tlsCAFile=ca)
+                
                 # SIMPLE TEST OF CONNECTION BEFORE CONTINUING
                 self.client.server_info()
 
@@ -58,8 +60,8 @@ class MongoDB:
 
                 raise Exception("MONGO URI IS NONETYPE")
 
-        except Exception:
+        except Exception as e:
             
-            self.logger.CRITICAL("FAILED TO CONNECT TO MONGO!")
+            self.logger.CRITICAL(f"FAILED TO CONNECT TO MONGO! - {e}")
 
             return False

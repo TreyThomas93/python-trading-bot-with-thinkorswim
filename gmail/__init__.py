@@ -141,7 +141,7 @@ class Gmail():
         # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
 
         for payload in payloads:
-
+            
             try:
 
                 seperate = payload.split(":")

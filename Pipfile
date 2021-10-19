@@ -22,6 +22,7 @@ colorama = "*"
 requests = "*"
 pytz = "*"
 psutil = "*"
+certifi = "*"
 
 [requires]
 python_version = "3.8"
