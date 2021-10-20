@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytz
 import time
 from assets.exception_handler import exception_handler
-from assets.current_datetime import getDatetime
+from assets.helper_functions import getDatetime, selectSleep, modifiedAccountID
 
 
 class Tasks:
@@ -225,39 +225,7 @@ class Tasks:
         """
 
         self.logger.INFO(
-            f"STARTING TASKS FOR TRADER {self.user['Name']} - ACCOUNT ID: {self.account_id}\n")
-
-        def selectSleep():
-            """
-            PRE-MARKET(0400 - 0930 ET): 5 SECONDS
-            MARKET OPEN(0930 - 1600 ET): 5 SECONDS
-            AFTER MARKET(1600 - 2000 ET): 5 SECONDS
-
-            WEEKENDS: 60 SECONDS
-            WEEKDAYS(2000 - 0400 ET): 60 SECONDS
-
-            EVERYTHING WILL BE BASED OFF CENTRAL TIME
-
-            OBJECTIVE IS TO FREE UP UNNECESSARY SERVER USAGE
-            """
-
-            dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-            dt_central = dt.astimezone(pytz.timezone('US/Central'))
-
-            day = dt_central.strftime("%a")
-
-            tm = dt_central.strftime("%H:%M:%S")
-
-            weekends = ["Sat", "Sun"]
-
-            # IF CURRENT TIME GREATER THAN 8PM AND LESS THAN 4AM, OR DAY IS WEEKEND, THEN RETURN 60 SECONDS
-            if tm > "20:00" or tm < "04:00" or day in weekends:
-
-                return 60
-
-            # ELSE RETURN 5 SECONDS
-            return 5
+            f"STARTING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n")
 
         while self.isAlive:
 

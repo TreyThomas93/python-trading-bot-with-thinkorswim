@@ -1,16 +1,15 @@
 # imports
 from datetime import datetime, timedelta
 import urllib.parse as up
-from pprint import pprint
-import pytz
 import time
 import requests
+from assets.helper_functions import modifiedAccountID
 from assets.exception_handler import exception_handler
 
 
 class TDAmeritrade:
 
-    def __init__(self, mongo, user, account_id, logger):
+    def __init__(self, mongo, user, account_id, logger, push_notification):
 
         self.user = user
 
@@ -19,6 +18,8 @@ class TDAmeritrade:
         self.logger = logger
 
         self.users = mongo.users
+
+        self.push_notification = push_notification
 
         self.no_go_token_sent = False
 
@@ -34,14 +35,14 @@ class TDAmeritrade:
     def initialConnect(self):
 
         self.logger.INFO(
-            f"CONNECTING {self.user['Name']} TO TDAMERITRADE ({self.account_id})")
+            f"CONNECTING {self.user['Name']} TO TDAMERITRADE ({modifiedAccountID(self.account_id)})")
 
         isValid = self.checkTokenValidity()
 
         if isValid:
 
             self.logger.INFO(
-                f"CONNECTED {self.user['Name']} TO TDAMERITRADE ({self.account_id})")
+                f"CONNECTED {self.user['Name']} TO TDAMERITRADE ({modifiedAccountID(self.account_id)})")
 
             return True
 
@@ -53,23 +54,13 @@ class TDAmeritrade:
             return False
 
     @exception_handler
-    def getDatetime(self):
-
-        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-        dt_central = dt.astimezone(pytz.timezone('US/Central'))
-
-        return datetime.strptime(dt_central.strftime(
-            "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
-
-    @exception_handler
     def checkTokenValidity(self):
         """ METHOD CHECKS IF ACCESS TOKEN IS VALID
 
         Returns:
             [boolean]: TRUE IF SUCCESSFUL, FALSE IF ERROR
         """
-
+    
         # GET USER DATA
         user = self.users.find_one({"Name": self.user["Name"]})
 
@@ -107,13 +98,13 @@ class TDAmeritrade:
 
         days_left = (refresh_exp - now).total_seconds() / 60 / 60 / 24
 
-        if days_left <= 1:
+        if days_left <= 5:
 
             token = self.getNewTokens(
                 user["Accounts"][self.account_id], refresh_type="Refresh Token")
 
             if token:
-                print(token)
+                
                 # ADD NEW TOKEN DATA TO USER DATA IN DB
                 self.users.update_one({"Name": self.user["Name"]}, {
                     "$set": {f"{self.account_id}.refresh_token": token['refresh_token'], f"{self.account_id}.refresh_exp_date": (datetime.now().replace(
@@ -157,14 +148,16 @@ class TDAmeritrade:
                              headers={
                                  'Content-Type': 'application/x-www-form-urlencoded'},
                              data=data)
-
+        
         if resp.status_code != 200:
 
             if not self.no_go_token_sent:
 
-                msg = f"ERROR WITH GETTING NEW TOKENS - {resp.json()} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {self.account_id}"
+                msg = f"ERROR WITH GETTING NEW TOKENS - {resp.json()} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {modifiedAccountID(self.account_id)}"
 
                 self.logger.ERROR(msg)
+
+                self.push_notification.send(msg)
 
                 self.no_go_token_sent = True
 
@@ -174,9 +167,11 @@ class TDAmeritrade:
 
                 self.terminate = True
 
-                msg = f"TDAMERITRADE INSTANCE TERMINATED - {resp.json()} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {self.account_id}"
+                msg = f"TDAMERITRADE INSTANCE TERMINATED - {resp.json()} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {modifiedAccountID(self.account_id)}"
 
                 self.logger.ERROR(msg)
+
+                self.push_notification.send(msg)
 
             return
 

@@ -1,5 +1,5 @@
-from assets.current_datetime import getDatetime
-from tasks import Tasks
+from assets.helper_functions import getDatetime
+from live_trader.tasks import Tasks
 from threading import Thread
 from assets.exception_handler import exception_handler
 from live_trader.order_builder import OrderBuilder
@@ -42,7 +42,7 @@ class LiveTrader(Tasks, OrderBuilder):
 
         self.no_ids_list = []
 
-        OrderBuilder.init(self)
+        # OrderBuilder.init(self)
 
         Tasks.__init__(self)
 
@@ -58,6 +58,7 @@ class LiveTrader(Tasks, OrderBuilder):
             position_data ([dict], optional): [CONSISTS OF OPEN POSITION DATA IF SELL ORDER]. Defaults to None.
             orderType (str, optional): [EITHER A LIMIT ORDER OR MARKET ORDER]. Defaults to "LIMIT".
         """
+
         symbol = trade_data["Symbol"]
 
         side = trade_data["Side"]
@@ -92,7 +93,8 @@ class LiveTrader(Tasks, OrderBuilder):
 
         order_build_type = "Standard"
 
-        order = self.standardOrder(trade_data, asset_type) if order_build_type == "Standard" else self.OCOorder(trade_data, asset_type)
+        order = self.standardOrder(
+            trade_data, asset_type) if order_build_type == "Standard" else self.OCOorder(trade_data, asset_type)
 
         obj = {
             "Symbol": symbol,
@@ -531,7 +533,7 @@ class LiveTrader(Tasks, OrderBuilder):
 
             account_id = data["Account_ID"]
 
-            # IF SYMBOL NOT FORBIDDEN AND ACCOUNT TYPE (PRIMARY, SECONDARY) IS EQUAL TO THE ACCOUNT TYPE ASSOCIATED WITH THE TDAMERITRADE ACCOUNT TYPE
+            # IF SYMBOL NOT FORBIDDEN AND ACCOUNT ID IS EQUAL TO INSTANCE ACCOUNT ID
             if symbol not in forbidden_symbols and self.account_id == account_id:
 
                 # CHECK OPEN POSITIONS AND QUEUE

@@ -9,13 +9,12 @@ from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 import os.path
 import os
-from pprint import pprint
 from datetime import datetime
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 
-class Gmail():
+class Gmail:
 
     def __init__(self, logger):
 
@@ -79,8 +78,8 @@ class Gmail():
                 raise Exception("Creds Not Found!")
 
         except Exception as e:
-            print(e)
-            self.logger.CRITICAL("FAILED TO CONNECT TO GMAIL!\n")
+            
+            self.logger.CRITICAL(f"FAILED TO CONNECT TO GMAIL! - {e}\n")
 
             return False
 
@@ -114,7 +113,7 @@ class Gmail():
 
         day = exp[4:6]
 
-        option_type = "CALL" if "C" in exp else "PUT" 
+        option_type = "CALL" if "C" in exp else "PUT"
 
         # .AA201211C5.5
 
@@ -141,7 +140,7 @@ class Gmail():
         # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
 
         for payload in payloads:
-            
+
             try:
 
                 seperate = payload.split(":")

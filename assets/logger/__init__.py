@@ -1,11 +1,10 @@
 # LOGGER CLASS WILL HANDLE ALL SYSTEM ALERTS. (INFO, WARNING, ERROR)
 # imports
-from datetime import datetime
-import pytz
 import os
 import traceback
 import colorama
 from termcolor import colored
+from assets.helper_functions import getDatetime
 
 colorama.init()
 
@@ -16,19 +15,7 @@ class Logger:
 
     def __init__(self):
 
-        self.gmail = None
-
-        self.mongo = None
-
         self.push = None
-
-    def getDatetime(self):
-
-        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-        dt_central = dt.astimezone(pytz.timezone('US/Central'))
-
-        return datetime.strptime(dt_central.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
     def log(self, log, db=False, file_type="info"):
         """ METHOD LOGS TO FILE. IF DB EQUALS TRUE, THEN SAVE TO MONGO
@@ -40,20 +27,13 @@ class Logger:
 
         try:
 
-            with open(f"{THIS_FOLDER}/logs/{file_type}_{str(self.getDatetime()).split(' ')[0].replace('-', '_')}.txt", "a") as f:
+            with open(f"{THIS_FOLDER}/logs/{file_type}{(getDatetime().strftime('%Y-%m-%d')).split(' ')[0].replace('-', '_')}.txt", "a") as f:
 
                 f.write(f"{log}\n")
 
         except Exception as e:
 
             print(e)
-
-        if self.mongo != None and db:
-
-            self.mongo.logs.insert_one({
-                "Log": log,
-                "Date": self.getDatetime()
-            })
 
     def INFO(self, info, db=False):
         """ METHOD PRINTS OUT INFO TO CONSOLE
@@ -64,7 +44,7 @@ class Logger:
         """
 
         # LEVEL:DATETIME:INFO
-        log = f"INFO | {self.getDatetime()} | {info}"
+        log = f"INFO | {getDatetime()} | {info}"
 
         print(colored(log, "green"))
 
@@ -79,7 +59,7 @@ class Logger:
         """
 
         # LEVEL:DATETIME:FILENAME:WARNING
-        log = f"WARNING | {self.getDatetime()} | {filename} | {warning}"
+        log = f"WARNING | {getDatetime()} | {filename} | {warning}"
 
         print(colored(log, "cyan"))
 
@@ -95,12 +75,12 @@ class Logger:
         # LEVEL:DATETIME
         if error == None:
 
-            log = f"ERROR | {self.getDatetime()}"
+            log = f"ERROR | {getDatetime()}"
 
         # LEVEL:DATETIME:ERROR
         else:
 
-            log = f"ERROR | {self.getDatetime()} | {error}"
+            log = f"ERROR | {getDatetime()} | {error}"
 
         print(colored(log, "red"))
 
@@ -112,8 +92,6 @@ class Logger:
 
         self.log(log, file_type="error")
 
-        # self.push.send(log)
-
     def CRITICAL(self, error):
         """ METHOD PRINTS OUT CRITICAL TO CONSOLE.
 
@@ -122,7 +100,7 @@ class Logger:
         """
 
         # LEVEL:DATETIME:MESSAGE
-        log = f"CRITICAL | {self.getDatetime()} | {error}"
+        log = f"CRITICAL | {getDatetime()} | {error}"
 
         print(colored(log, "red"))
 

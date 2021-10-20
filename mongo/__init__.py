@@ -1,14 +1,16 @@
 import colorama
-from pprint import pprint
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 import certifi
 ca = certifi.where()
+from pathlib import Path
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
-load_dotenv(dotenv_path=f"{THIS_FOLDER}/.env")
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/assets/.env")
 
 colorama.init()
 
@@ -58,7 +60,7 @@ class MongoDB:
 
             else:
 
-                raise Exception("MONGO URI IS NONETYPE")
+                raise Exception("MISSING MONGO URI")
 
         except Exception as e:
             

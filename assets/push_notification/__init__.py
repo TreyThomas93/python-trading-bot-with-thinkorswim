@@ -2,11 +2,13 @@ from pprint import pprint
 from dotenv import load_dotenv
 import requests
 import os
-import json
+from pathlib import Path
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
-load_dotenv(dotenv_path=f"{THIS_FOLDER}/.env")
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/assets/.env")
 
 PUSH_API_KEY = os.getenv('PUSH_API_KEY')
 
@@ -44,13 +46,19 @@ class PushNotification:
 
         try:
 
+            # RESPONSE: {'status': 1, 'success': 'message transmitted', 'available': 983, 'message_ids': '18265430:34011'}
+
             self.post_fields["m"] = notification
 
             response = requests.post(self.url, self.post_fields)
 
-            remaining = (response.json())["available"]
+            if response.json()["success"] == 'message transmitted':
 
-            self.logger.INFO(f"PUSH NOTIFICATION: {response.json()}")
+                self.logger.INFO(f"PUSH NOTIFICATION SUCCESS: {notification}")
+
+            else:
+
+                self.logger.INFO(f"PUSH NOTIFICATION FAILED: {notification}")
 
         except ValueError:
 
