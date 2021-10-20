@@ -41,12 +41,15 @@ class Main:
 
             self.accounts = []
 
-            self.paper_trader = PaperTrader(self.mongo)
+            self.paper_trader = PaperTrader(self.mongo, self.logger)
 
             self.not_connected = []
 
             # SET TO TRUE TO LIVE TRADE/FALSE TO STOP LIVE TRADING
             self.live_trader_active = False
+
+            main.logger.INFO(
+                f"LIVE TRADER IS {'ACTIVE' if self.live_trader_active else 'INACTIVE'}\n")
 
             return True
 
@@ -108,7 +111,7 @@ class Main:
 
         for live_trader in self.traders.values():
 
-            if self.live__trader_active:
+            if self.live_trader_active:
 
                 live_trader.runTrader(trade_data)
 
@@ -130,10 +133,7 @@ if __name__ == "__main__":
     connected = main.connectAll()
 
     if connected:
-
-        main.logger.INFO(
-            f"LIVE TRADER IS {'ACTIVE' if main.live_trader_active else 'INACTIVE'}\n")
-
+        
         while True:
 
             main.run()

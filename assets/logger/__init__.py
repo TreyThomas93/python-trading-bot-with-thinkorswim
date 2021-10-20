@@ -17,7 +17,7 @@ class Logger:
 
         self.push = None
 
-    def log(self, log, db=False, file_type="info"):
+    def log(self, log, file_type="info"):
         """ METHOD LOGS TO FILE. IF DB EQUALS TRUE, THEN SAVE TO MONGO
 
         Args:
@@ -35,7 +35,7 @@ class Logger:
 
             print(e)
 
-    def INFO(self, info, db=False):
+    def INFO(self, info):
         """ METHOD PRINTS OUT INFO TO CONSOLE
 
         Args:
@@ -48,7 +48,7 @@ class Logger:
 
         print(colored(log, "green"))
 
-        self.log(log, db)
+        self.log(log)
 
     def WARNING(self, filename, warning):
         """ METHOD PRINTS OUT WARNING TO CONSOLE.

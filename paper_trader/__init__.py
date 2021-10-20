@@ -1,22 +1,19 @@
-# SIM TRADER. BUYS/SELLS NO MATTER THE BUYING POWER
-
-from pprint import pprint
+# imports
 from assets.helper_functions import getDatetime
-import statistics
-from datetime import datetime, timedelta
-import pytz
 import requests
 
 
 class PaperTrader():
 
-    def __init__(self, mongo):
+    def __init__(self, mongo, logger):
 
         self.db = mongo.client["Paper_Trader"]
 
         self.open_positions = self.db["open_positions"]
 
         self.closed_positions = self.db["closed_positions"]
+
+        self.logger = logger
 
     def openPosition(self, data):
 
@@ -43,57 +40,63 @@ class PaperTrader():
 
         except Exception as e:
 
-            print("PAPER TRADER - openPosition", e)
+            self.logger.ERROR(f"{__class__.__name__} - openPosition - {e}")
 
     def closePosition(self, data, position):
 
-        strategy = data["Strategy"]
+        try:
 
-        symbol = data["Symbol"]
+            strategy = data["Strategy"]
 
-        qty = position["Qty"]
+            symbol = data["Symbol"]
 
-        position_price = position["Buy_Price"]
+            qty = position["Qty"]
 
-        position_date = position["Date"]
+            position_price = position["Buy_Price"]
 
-        resp = self.tdameritrade.getQuote(symbol)
+            position_date = position["Date"]
 
-        price = float(resp[symbol]["lastPrice"])
+            resp = self.tdameritrade.getQuote(symbol)
 
-        sell_price = round(price * qty, 2)
+            price = float(resp[symbol]["lastPrice"])
 
-        buy_price = round(position_price * qty, 2)
+            sell_price = round(price * qty, 2)
 
-        if buy_price != 0:
+            buy_price = round(position_price * qty, 2)
 
-            rov = round(
-                ((sell_price / buy_price) - 1) * 100, 2)
+            if buy_price != 0:
 
-        else:
+                rov = round(
+                    ((sell_price / buy_price) - 1) * 100, 2)
 
-            rov = 0
+            else:
 
-        obj = {
-            "Symbol": symbol,
-            "Qty": qty,
-            "Buy_Price": position_price,
-            "Buy_Date": position_date,
-            "Sell_Price": price,
-            "Sell_Date": getDatetime(),
-            "Strategy": strategy,
-            "ROV": rov,
-        }
+                rov = 0
 
-        # ADD TO CLOSED POSITIONS
-        self.closed_positions.insert_one(obj)
+            obj = {
+                "Symbol": symbol,
+                "Qty": qty,
+                "Buy_Price": position_price,
+                "Buy_Date": position_date,
+                "Sell_Price": price,
+                "Sell_Date": getDatetime(),
+                "Strategy": strategy,
+                "ROV": rov,
+            }
 
-        # REMOVE FROM OPEN POSITIONS
-        self.open_positions.delete_one(
-            {"Symbol": symbol, "Strategy": strategy})
+            # ADD TO CLOSED POSITIONS
+            self.closed_positions.insert_one(obj)
 
-        # SEND STRATEGY RESULT (IF YOU WANT TO)
-        # self.sendStrategyResult(obj)
+            # REMOVE FROM OPEN POSITIONS
+            self.open_positions.delete_one(
+                {"Symbol": symbol, "Strategy": strategy})
+
+            # SEND STRATEGY RESULT (IF YOU WANT TO)
+            # self.sendStrategyResult(obj)
+
+        except Exception as e:
+
+            self.logger.ERROR(f"{__class__.__name__} - closePosition - {e}")
 
     def runTrader(self, symbols, tdameritrade):
 
@@ -128,7 +131,7 @@ class PaperTrader():
 
         except Exception as e:
 
-            print("PAPER TRADER - runTrader", e)
+            self.logger.ERROR(f"{__class__.__name__} - runTrader - {e}")
 
     def sendStrategyResult(self, obj):
 
@@ -142,13 +145,13 @@ class PaperTrader():
 
             obj["Sell_Date"] = str(obj["Sell_Date"])
 
-            email = "TreyThomas93@gmail.com"
-
             resp = requests.post("https://treythomas673.pythonanywhere.com/api/send_strategy_result",
                                  json={"email": email, "trade_data": obj})
 
-            print(resp.json(), resp.status_code)
+            self.logger.INFO(
+                f"STATUS CODE - {resp.status_code} / {resp.json()}")
 
         except Exception as e:
 
-            print("POST REQUEST ERROR WHEN SENDING STRATEGY RESULT", e)
+            self.logger.ERROR(
+                f"POST REQUEST ERROR WHEN SENDING STRATEGY RESULT - {e}")

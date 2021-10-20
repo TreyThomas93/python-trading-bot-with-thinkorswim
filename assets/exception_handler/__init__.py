@@ -1,6 +1,7 @@
 # EXCEPTION HANDLER DECORATOR FOR HANDLER EXCEPTIONS AND LOGGING THEM
 
 from assets.logger import Logger
+from assets.helper_functions import modifiedAccountID
 
 logger = Logger()
 
@@ -16,19 +17,19 @@ def exception_handler(func):
 
         except KeyError:
 
-            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
+            logger.ERROR(f"ACCOUNT ID: {modifiedAccountID(self.account_id)} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except ValueError:
 
-            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
+            logger.ERROR(f"ACCOUNT ID: {modifiedAccountID(self.account_id)} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except TypeError:
 
-            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
+            logger.ERROR(f"ACCOUNT ID: {modifiedAccountID(self.account_id)} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except AttributeError:
 
-            logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
+            logger.ERROR(f"ACCOUNT ID: {modifiedAccountID(self.account_id)} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
         except Exception:
 
@@ -36,7 +37,7 @@ def exception_handler(func):
 
             if class_name in acceptable_classes:
 
-                logger.ERROR(f"ACCOUNT ID: {self.account_id} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
+                logger.ERROR(f"ACCOUNT ID: {modifiedAccountID(self.account_id)} TRADER: {self.user['Name']} CLASSNAME: {class_name}")
 
             else:
 

@@ -16,7 +16,7 @@ class Tasks:
 
         self.logger = self.logger
 
-        self.midnight = False
+        self.market_close = False
 
         self.check_options = False
 
@@ -207,17 +207,23 @@ class Tasks:
                 self.placeOrder(trade_data, position)
 
     @ exception_handler
-    def updateStrategiesObject(self, strategy):
+    def updateStrategiesObject(self, strategy, asset_type):
         """ METHOD UPDATES STRATEGIES OBJECT IN MONGODB WITH NEW STRATEGIES.
 
         Args:
             strategy ([str]): STRATEGY NAME
         """
 
-        # IF STRATEGY DOESNT EXIST IN OBJECT, THEN ADD IT AND SET DEFAULT TO 1 SHARE AND ACTIVE STATUS
+        obj = {"Active": True,
+               "Order_Type": "Standard",
+               "Asset_Type": asset_type,
+               "Position_Size": 500,
+               }
+
+        # IF STRATEGY DOESNT EXIST IN OBJECT, THEN ADD STRATEGY OBJ ABOVE
         self.users.update(
             {"Name": self.user["Name"], f"Accounts.{self.account_id}.Strategies.{strategy}": {"$exists": False}}, {
-                "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": {"Position_Size": 500, "Active": True}}}
+                "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": obj}}
         )
 
     def runTasks(self):
@@ -236,11 +242,7 @@ class Tasks:
 
                 self.updateAccountBalance()
 
-                dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-                dt_central = dt.astimezone(pytz.timezone('US/Central'))
-
-                tm = dt_central.time().strftime("%H:%M")
+                tm = getDatetime().time().strftime("%H:%M")
 
                 if tm == "08:30":  # set this based on YOUR timezone
 
@@ -254,16 +256,16 @@ class Tasks:
 
                     self.check_options = False
 
-                # IF MIDNIGHT, ADD BALANCE, PROFIT/LOSS TO HISTORY
-                if tm == "23:55":
+                # IF MARKET CLOSE, ADD BALANCE, PROFIT/LOSS TO HISTORY
+                if tm == "16:00":
 
-                    if not self.midnight:
+                    if not self.market_close:
 
                         self.balanceHistory()
 
                         self.profitLossHistory()
 
-                        self.midnight = True
+                        self.market_close = True
 
                 else:
 
@@ -276,10 +278,11 @@ class Tasks:
             except Exception:
 
                 self.logger.ERROR(
-                    f"ACCOUNT ID: {self.account_id} - TRADER: {self.user['Name']}")
+                    f"ACCOUNT ID: {modifiedAccountID(self.account_id)} - TRADER: {self.user['Name']}")
 
             finally:
 
                 time.sleep(selectSleep())
 
-        self.logger.INFO(f"TASK STOPPED FOR ACCOUNT ID {self.account_id}")
+        self.logger.INFO(
+            f"TASK STOPPED FOR ACCOUNT ID {modifiedAccountID(self.account_id)}")

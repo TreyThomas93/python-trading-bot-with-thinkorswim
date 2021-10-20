@@ -38,7 +38,7 @@ class OrderBuilder:
             "Account_ID": self.account_id,
         }
 
-    def standardOrder(self, trade_data, position_data=None):
+    def standardOrder(self, trade_data, position_data=None, OCOorder=False):
 
         symbol = trade_data["Symbol"]
 
@@ -78,14 +78,19 @@ class OrderBuilder:
 
             self.order["orderLegCollection"][0]["instrument"]["putCall"] = trade_data["Option_Type"]
 
+        # GET QUOTE FOR SYMBOL
+        resp = self.tdameritrade.getQuote(
+            symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
+
+        price = float(resp[symbol]["bidPrice"]) if side == "BUY" or side == "BUY_TO_OPEN" else float(
+            resp[symbol]["askPrice"])
+
+        # OCO ORDER NEEDS TO USE ASK PRICE FOR ISSUE WITH THE ORDER BEING TERMINATED UPON BEING PLACED
+        if OCOorder:
+
+            price = float(resp[symbol]["askPrice"])
+
         if side == "BUY" or side == "BUY_TO_OPEN":
-
-            # GET QUOTE FOR SYMBOL
-            resp = self.tdameritrade.getQuote(
-                symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
-
-            price = float(
-                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
 
             self.order["price"] = round(
                 price, 2) if price >= 1 else round(price, 4)
@@ -96,16 +101,17 @@ class OrderBuilder:
 
             if strategy not in strategies:
 
-                self.updateStrategiesObject(strategy)
+                self.updateStrategiesObject(strategy, asset_type)
 
                 strategies = self.mongo.users.find_one({"Name": self.user["Name"]})["Accounts"][str(
                     self.account_id)]["Strategies"]
 
-            position_size = int(strategies[strategy]["Position_Size"])
-
             active_strategy = strategies[strategy]["Active"]
 
-            shares = int(position_size/price)
+            position_size = int(strategies[strategy]["Position_Size"])
+
+            shares = int(
+                position_size/price) if asset_type == "EQUITY" else int((position_size / 100)/price)
 
             if active_strategy and shares > 0:
 
@@ -126,11 +132,6 @@ class OrderBuilder:
 
         elif side == "SELL" or side == "SELL_TO_CLOSE":
 
-            resp = self.tdameritrade.getQuote(
-                symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
-
-            price = float(resp[symbol]["askPrice"])
-
             self.order["price"] = round(
                 price, 2) if price >= 1 else round(price, 4)
 
@@ -146,11 +147,13 @@ class OrderBuilder:
 
         return self.order, self.obj
 
-    def OCOorder(self, trade_data):
+    def OCOorder(self, trade_data, strategy_data):
 
-        order, obj = self.standardOrder(trade_data)
+        order, obj = self.standardOrder(trade_data, OCOorder=True)
 
         symbol = trade_data["Symbol"]
+
+        asset_type = "OPTION" if "Pre_Symbol" in trade_data else "EQUITY"
 
         order["orderStrategyType"] = "TRIGGER"
 
@@ -166,11 +169,11 @@ class OrderBuilder:
                         "price": None,
                         "orderLegCollection": [
                             {
-                                "instruction": "SELL",
+                                "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
                                 "quantity": None,
                                 "instrument": {
-                                    "assetType": "EQUITY",
-                                    "symbol": symbol
+                                    "assetType": asset_type,
+                                    "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]
                                 }
                             }
                         ]
@@ -183,11 +186,11 @@ class OrderBuilder:
                         "stopPrice": None,
                         "orderLegCollection": [
                             {
-                                "instruction": "SELL",
+                                "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
                                 "quantity": None,
                                 "instrument": {
-                                    "assetType": "EQUITY",
-                                    "symbol": "XYZ"
+                                    "assetType": asset_type,
+                                    "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]
                                 }
                             }
                         ]

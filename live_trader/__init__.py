@@ -60,9 +60,9 @@ class LiveTrader(Tasks, OrderBuilder):
 
             self.sendOrder(self.standardOrder(trade_data))
 
-        elif strategies[strategy]["Order_Type"] == "Standard":
+        elif strategies[strategy]["Order_Type"] == "OCO":
 
-            self.sendOrder(self.OCOorder(trade_data))
+            self.sendOrder(self.OCOorder(trade_data, strategies[strategy]))
 
     @exception_handler
     def closePosition(self, trade_data, position_data):
@@ -450,7 +450,7 @@ class LiveTrader(Tasks, OrderBuilder):
                         # THIS CHECK IF USER IS ACTIVE. IF NOT ACTIVE, ALL BUYING STOPS
                         if self.user["Accounts"][str(self.account_id)]["Active"]:
 
-                            self.placeOrder(data)
+                            self.openPosition(data)
 
                     elif open_position:
 
@@ -460,7 +460,7 @@ class LiveTrader(Tasks, OrderBuilder):
                     elif queued:
 
                         self.logger.INFO(
-                            f"Symbol {symbol} with strategy {strategy} already in queue")
+                            f"Symbol {symbol} with strategy {strategy} already in queue as BUY order")
 
                 # SELL ##############################
                 elif side == "SELL" or side == "SELL_TO_CLOSE":
@@ -468,42 +468,10 @@ class LiveTrader(Tasks, OrderBuilder):
                     if open_position and not queued:
 
                         # LIVE TRADE
-                        self.placeOrder(data, open_position)
+                        self.closePosition(data, open_position)
 
-# {'accountId': 123456789,
-#  'cancelTime': '2021-04-19',
-#  'cancelable': False,
-#  'closeTime': '2020-10-21T18:01:04+0000',
-#  'complexOrderStrategyType': 'NONE',
-#  'destinationLinkName': 'NITE',
-#  'duration': 'GOOD_TILL_CANCEL',
-#  'editable': False,
-#  'enteredTime': '2020-10-21T18:01:04+0000',
-#  'filledQuantity': 1.0,
-#  'orderActivityCollection': [{'activityType': 'EXECUTION',
-#                               'executionLegs': [{'legId': 1,
-#                                                  'mismarkedQuantity': 0.0,
-#                                                  'price': 25.62,
-#                                                  'quantity': 1.0,
-#                                                  'time': '2020-10-21T18:01:04+0000'}],
-#                               'executionType': 'FILL',
-#                               'orderRemainingQuantity': 0.0,
-#                               'quantity': 1.0}],
-#  'orderId': 1598640932,
-#  'orderLegCollection': [{'instruction': 'SELL',
-#                          'instrument': {'assetType': 'EQUITY',
-#                                         'cusip': 'G0750C108',
-#                                         'symbol': 'AXTA'},
-#                          'legId': 1,
-#                          'orderLegType': 'EQUITY',
-#                          'positionEffect': 'CLOSING',
-#                          'quantity': 1.0}],
-#  'orderStrategyType': 'SINGLE',
-#  'orderType': 'LIMIT',
-#  'price': 25.49,
-#  'quantity': 1.0,
-#  'remainingQuantity': 0.0,
-#  'requestedDestination': 'AUTO',
-#  'session': 'SEAMLESS',
-#  'status': 'FILLED',
-#  'tag': 'AA_JohnDoe'}
+                    elif queued:
+
+                        self.logger.INFO(
+                            f"Symbol {symbol} with strategy {strategy} already in queue as SELL order")
+
