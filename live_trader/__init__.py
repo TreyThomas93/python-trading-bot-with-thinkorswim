@@ -42,151 +42,48 @@ class LiveTrader(Tasks, OrderBuilder):
 
         self.no_ids_list = []
 
-        # OrderBuilder.init(self)
+        OrderBuilder.__init__(self)
 
         Tasks.__init__(self)
 
         Thread(target=self.runTasks, daemon=True).start()
 
-    # STEP ONE
     @exception_handler
-    def placeOrder(self, trade_data, position_data=None):
-        """ METHOD IS USED TO PLACE TRADES (BUY/SELL ORDER).
-
-        Args:
-            trade_data ([dict]): [CONSISTS OF TRADE DATA FOR EACH SYMBOL (SYMBOL, STRATEGY, AGGREGATION, ASSET TYPE, ACCOUNT ID, ORDER TYPE)]
-            position_data ([dict], optional): [CONSISTS OF OPEN POSITION DATA IF SELL ORDER]. Defaults to None.
-            orderType (str, optional): [EITHER A LIMIT ORDER OR MARKET ORDER]. Defaults to "LIMIT".
-        """
-
-        symbol = trade_data["Symbol"]
-
-        side = trade_data["Side"]
+    def openPosition(self, trade_data):
 
         strategy = trade_data["Strategy"]
 
-        if "Pre_Symbol" in trade_data:
+        strategies = self.user["Accounts"][str(
+            self.account_id)]["Strategies"]
 
-            asset_type = "OPTION"
+        if strategies[strategy]["Order_Type"] == "Standard":
 
-        else:
+            self.sendOrder(self.standardOrder(trade_data))
 
-            asset_type = "EQUITY"
+        elif strategies[strategy]["Order_Type"] == "Standard":
 
-        # order = {
-        #     "orderType": "LIMIT",
-        #     "price": None,
-        #     "session": "SEAMLESS" if asset_type == "EQUITY" else "NORMAL",
-        #     "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
-        #     "orderStrategyType": "SINGLE",
-        #     "orderLegCollection": [
-        #         {
-        #             "instruction": side,
-        #             "quantity": None,
-        #             "instrument": {
-        #                 "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
-        #                 "assetType": asset_type,
-        #             }
-        #         }
-        #     ]
-        # }
+            self.sendOrder(self.OCOorder(trade_data))
 
-        order_build_type = "Standard"
+    @exception_handler
+    def closePosition(self, trade_data, position_data):
 
-        order = self.standardOrder(
-            trade_data, asset_type) if order_build_type == "Standard" else self.OCOorder(trade_data, asset_type)
+        self.sendOrder(self.standardOrder(trade_data, position_data))
 
-        obj = {
-            "Symbol": symbol,
-            "Qty": None,
-            "Position_Size": None,
-            "Date": getDatetime(),
-            "Strategy": strategy,
-            "Trader": self.user["Name"],
-            "Order_ID": None,
-            "Order_Status": None,
-            "Order_Type": side,
-            "Asset_Type": asset_type,
-            "Account_ID": self.account_id,
-        }
+    # STEP ONE
+    @exception_handler
+    def sendOrder(self, order, obj):
 
-        if asset_type == "OPTION":
+        if order == None or obj == None:
+            
+            return
 
-            obj["Pre_Symbol"] = trade_data["Pre_Symbol"]
+        symbol = obj["Symbol"]
 
-            obj["Exp_Date"] = trade_data["Exp_Date"]
+        side = obj["Side"]
 
-            obj["Option_Type"] = trade_data["Option_Type"]
+        strategy = obj["Strategy"]
 
-            order["orderLegCollection"][0]["instrument"]["putCall"] = trade_data["Option_Type"]
-
-        position_size = None
-
-        if side == "BUY" or side == "BUY_TO_OPEN":
-
-            resp = self.tdameritrade.getQuote(
-                symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
-
-            price = float(
-                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
-
-            order["price"] = round(price, 2) if price >= 1 else round(price, 4)
-
-            # GET SHARES FOR PARTICULAR STRATEGY
-            strategies = self.user["Accounts"][str(
-                self.account_id)]["Strategies"]
-
-            if strategy not in strategies:
-
-                self.updateStrategiesObject(strategy)
-
-                strategies = self.mongo.users.find_one({"Name": self.user["Name"]})["Accounts"][str(
-                    self.account_id)]["Strategies"]
-
-            position_size = int(strategies[strategy]["Position_Size"])
-
-            active_strategy = strategies[strategy]["Active"]
-
-            shares = int(position_size/price)
-
-            if active_strategy and shares > 0:
-
-                order["orderLegCollection"][0]["quantity"] = shares
-
-                obj["Qty"] = shares
-
-                obj["Position_Size"] = position_size
-
-                obj["Buy_Price"] = price
-
-            else:
-
-                self.logger.WARNING(
-                    __class__.__name__, f"{side} ORDER STOPPED: STRATEGY STATUS - {active_strategy} SHARES - {shares}")
-
-                return
-
-        elif side == "SELL" or side == "SELL_TO_CLOSE":
-
-            resp = self.tdameritrade.getQuote(symbol)
-
-            price = float(resp[symbol]["askPrice"])
-
-            order["price"] = round(price, 2) if price >= 1 else round(price, 4)
-
-            order["orderLegCollection"][0]["quantity"] = position_data["Qty"]
-
-            obj["Buy_Price"] = position_data["Buy_Price"]
-
-            obj["Buy_Date"] = position_data["Date"]
-
-            obj["Qty"] = position_data["Qty"]
-
-            obj["Position_Size"] = position_data["Position_Size"]
-
-            position_size = position_data["Position_Size"]
         # PLACE ORDER ################################################
-
         resp = self.tdameritrade.placeTDAOrder(order)
 
         status_code = resp.status_code
@@ -197,7 +94,6 @@ class LiveTrader(Tasks, OrderBuilder):
 
             other = {
                 "Symbol": symbol,
-                "Position_Size": position_size,
                 "Order_Type": side,
                 "Order_Status": "REJECTED",
                 "Strategy": strategy,
@@ -246,6 +142,8 @@ class LiveTrader(Tasks, OrderBuilder):
             IF FILLED, THEN QUEUED ORDER IS REMOVED FROM QUEUE AND THE pushOrder METHOD IS CALLED.
 
             IF REJECTED OR CANCELED, THEN QUEUED ORDER IS REMOVED FROM QUEUE AND SENT TO OTHER COLLECTION IN MONGODB.
+
+            IF ORDER ID NOT FOUND, THEN ASSUME ORDER FILLED AND MARK AS ASSUMED DATA. ELSE MARK AS RELIABLE DATA.
         """
 
         queued_orders = self.queue.find({"Trader": self.user["Name"], "Order_ID": {
