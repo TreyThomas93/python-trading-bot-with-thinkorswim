@@ -218,6 +218,7 @@ class Tasks:
                "Order_Type": "Standard",
                "Asset_Type": asset_type,
                "Position_Size": 500,
+               "Sell_End_Of_Day": False
                }
 
         # IF STRATEGY DOESNT EXIST IN OBJECT, THEN ADD STRATEGY OBJ ABOVE
@@ -225,6 +226,64 @@ class Tasks:
             {"Name": self.user["Name"], f"Accounts.{self.account_id}.Strategies.{strategy}": {"$exists": False}}, {
                 "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": obj}}
         )
+
+    @exception_handler
+    def determineIfTrading(self):
+
+        dt = getDatetime()
+
+        day = dt.strftime("%a")
+
+        tm = dt.strftime("%H:%M:%S")
+
+        weekends = ["Sat", "Sun"]
+
+        if tm > "09:35" and tm < "15:55" and day not in weekends:
+
+            return True
+
+        return False
+
+    @exception_handler
+    def sellAtEndOfDay(self):
+
+        strategies_to_sell = []
+
+        # GET ALL STRATEGIES THAT NEED TO SELL AT END OF DAY
+        for obj in self.user["Accounts"].values():
+
+            for strategy_name, val in obj["Strategies"].items():
+
+                if val["Sell_End_Of_Day"] and strategy_name not in strategies_to_sell:
+
+                    strategies_to_sell.append(strategy_name)
+
+        # GET ALL OPEN POSITIONS WITH STRATEGY
+        for strategy in strategies_to_sell:
+
+            open_positions = self.open_positions.find(
+                {"Trader": self.user["Name"], "Strategy": strategy})
+
+            for position in open_positions:
+
+                obj = {
+                    "Symbol": position["Symbol"],
+                    "Side": position["Side"],
+                    "Strategy": strategy,
+                    "Account_ID": self.account_id,
+                }
+
+                if position["Asset_Type"] == "OPTION":
+
+                    obj["Symbol"] = position["Symbol"]
+
+                    obj["Pre_Symbol"] = position["Pre_Symbol"]
+
+                    obj["Exp_Date"] = position["Exp_Date"]
+
+                    obj["Option_Type"] = position["Option_Type"]
+
+                self.closePosition(obj, position)
 
     def runTasks(self):
         """ METHOD RUNS TASKS ON WHILE LOOP EVERY 5 - 60 SECONDS DEPENDING.
@@ -243,8 +302,9 @@ class Tasks:
                 self.updateAccountBalance()
 
                 tm = getDatetime().time().strftime("%H:%M")
-
-                if tm == "08:30":  # set this based on YOUR timezone
+                self.sellAtEndOfDay()
+                # SELL OUT OF OPTIONS IF EXPIRED
+                if tm == "09:30":  # set this based on YOUR timezone
 
                     if not self.check_options:
 
@@ -256,8 +316,8 @@ class Tasks:
 
                     self.check_options = False
 
-                # IF MARKET CLOSE, ADD BALANCE, PROFIT/LOSS TO HISTORY
-                if tm == "16:00":
+                # IF MARKET CLOSE, ADD BALANCE, PROFIT/LOSS TO HISTORY AND SELL OUT POSITIONS
+                if tm == "15:55":  # set this based on YOUR timezone
 
                     if not self.market_close:
 
@@ -265,11 +325,13 @@ class Tasks:
 
                         self.profitLossHistory()
 
+                        self.sellAtEndOfDay()
+
                         self.market_close = True
 
                 else:
 
-                    self.midnight = False
+                    self.market_close = False
 
             except KeyError:
 

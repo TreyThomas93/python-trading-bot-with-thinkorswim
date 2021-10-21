@@ -111,11 +111,13 @@ class Main:
 
         for live_trader in self.traders.values():
 
-            if self.live_trader_active:
+            time_to_trade = live_trader.determineIfTrading()
+            
+            if self.live_trader_active and time_to_trade:
 
                 live_trader.runTrader(trade_data)
 
-            if not paper_went:  # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
+            if not paper_went and time_to_trade:  # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
 
                 self.paper_trader.runTrader(
                     trade_data, live_trader.tdameritrade)

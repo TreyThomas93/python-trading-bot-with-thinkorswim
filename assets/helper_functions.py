@@ -1,7 +1,7 @@
 import pytz
 from datetime import datetime
 
-# PLACE YOUR TIMEZONE HERE
+# PLACE YOUR TIMEZONE HERE (VIEW PYTZ DOCS FOR YOUR CORRECT TIMEZONE FORMAT)
 timezone = "US/Central"
 
 def getDatetime():
@@ -29,7 +29,7 @@ def selectSleep():
 
         dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-        dt = dt.astimezone(pytz.timezone(timezone)) # SET TO YOUR TIMEZONE!
+        dt = dt.astimezone(pytz.timezone(timezone)) 
 
         day = dt.strftime("%a")
 
