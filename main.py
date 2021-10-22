@@ -10,10 +10,19 @@ from assets.logger import Logger
 from tdameritrade import TDAmeritrade
 from assets.exception_handler import exception_handler
 from assets.helper_functions import selectSleep
+from dotenv import load_dotenv
+from pathlib import Path
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 assets = os.path.join(THIS_FOLDER, 'assets')
+
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/.env")
+
+RUN_LIVE_TRADER = True if os.getenv('RUN_LIVE_TRADER') == "True" else False
+RUN_PAPER_TRADER = True if os.getenv('RUN_PAPER_TRADER') == "True" else False
 
 
 class Main:
@@ -45,11 +54,13 @@ class Main:
 
             self.not_connected = []
 
-            # SET TO TRUE TO LIVE TRADE/FALSE TO STOP LIVE TRADING
-            self.live_trader_active = False
+            print(type(RUN_LIVE_TRADER))
 
             main.logger.INFO(
-                f"LIVE TRADER IS {'ACTIVE' if self.live_trader_active else 'INACTIVE'}\n")
+                f"LIVE TRADER IS {'ACTIVE' if RUN_LIVE_TRADER else 'INACTIVE'}")
+
+            main.logger.INFO(
+                f"PAPER TRADER IS {'ACTIVE' if RUN_PAPER_TRADER else 'INACTIVE'}\n")
 
             return True
 
@@ -110,14 +121,12 @@ class Main:
         trade_data = self.gmail.getEmails()
 
         for live_trader in self.traders.values():
-
-            time_to_trade = live_trader.determineIfTrading()
             
-            if self.live_trader_active and time_to_trade:
+            if self.live_trader_active and RUN_LIVE_TRADER:
 
                 live_trader.runTrader(trade_data)
 
-            if not paper_went and time_to_trade:  # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
+            if not paper_went and RUN_PAPER_TRADER:  # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
 
                 self.paper_trader.runTrader(
                     trade_data, live_trader.tdameritrade)

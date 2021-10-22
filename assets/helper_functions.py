@@ -1,14 +1,22 @@
 import pytz
 from datetime import datetime
+from dotenv import load_dotenv
+from pathlib import Path
+import os
 
-# PLACE YOUR TIMEZONE HERE (VIEW PYTZ DOCS FOR YOUR CORRECT TIMEZONE FORMAT)
-timezone = "US/Central"
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/.env")
+
+TIMEZONE = os.getenv('TIMEZONE')
 
 def getDatetime():
 
     dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-    dt = dt.astimezone(pytz.timezone(timezone))
+    dt = dt.astimezone(pytz.timezone(TIMEZONE))
 
     return datetime.strptime(dt.strftime(
         "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
@@ -27,9 +35,7 @@ def selectSleep():
         OBJECTIVE IS TO FREE UP UNNECESSARY SERVER USAGE
         """
 
-        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
-
-        dt = dt.astimezone(pytz.timezone(timezone)) 
+        dt = getDatetime()
 
         day = dt.strftime("%a")
 
