@@ -1,10 +1,20 @@
-from assets.helper_functions import getDatetime
+from assets.helper_functions import getDatetime, modifiedAccountID
 from live_trader.tasks import Tasks
 from threading import Thread
 from assets.exception_handler import exception_handler
 from live_trader.order_builder import OrderBuilder
-from pprint import pprint
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+import inspect
 
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/.env")
+
+RUN_TASKS = True if os.getenv('RUN_TASKS') == "True" else False
 
 class LiveTrader(Tasks, OrderBuilder):
 
@@ -34,6 +44,8 @@ class LiveTrader(Tasks, OrderBuilder):
 
         self.closed_positions = mongo.closed_positions
 
+        self.strategies = mongo.strategies
+
         self.other = mongo.other
 
         self.queue = mongo.queue
@@ -46,7 +58,15 @@ class LiveTrader(Tasks, OrderBuilder):
 
         Tasks.__init__(self)
 
-        Thread(target=self.runTasks, daemon=True).start()
+        # If user wants to run tasks and there are more than two methods (outside of runTasks and addNewStrategy) found, indicating post production tasks were found.
+        if RUN_TASKS and len([i for i in dir(Tasks) if "_" not in i]) > 2:
+
+            Thread(target=self.runTasks, daemon=True).start()
+
+        else:
+
+            self.logger.INFO(
+            f"NOT RUNNING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n")
 
     @exception_handler
     def openPosition(self, trade_data):
@@ -417,10 +437,6 @@ class LiveTrader(Tasks, OrderBuilder):
         # UPDATE USER ATTRIBUTE
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 
-        # MAY SET THESE DYNAMICALLY FROM WEB APP
-        forbidden_symbols = self.user["Accounts"][str(
-            self.account_id)]["forbidden_symbols"]
-
         for data in trade_data:
 
             side = data["Side"]
@@ -432,7 +448,7 @@ class LiveTrader(Tasks, OrderBuilder):
             account_id = data["Account_ID"]
 
             # IF SYMBOL NOT FORBIDDEN AND ACCOUNT ID IS EQUAL TO INSTANCE ACCOUNT ID
-            if symbol not in forbidden_symbols and self.account_id == account_id:
+            if symbol and self.account_id == account_id:
 
                 # CHECK OPEN POSITIONS AND QUEUE
                 open_position = self.open_positions.find_one(
@@ -448,7 +464,7 @@ class LiveTrader(Tasks, OrderBuilder):
 
                         # LIVE TRADE
                         # THIS CHECK IF USER IS ACTIVE. IF NOT ACTIVE, ALL BUYING STOPS
-                        if self.user["Accounts"][str(self.account_id)]["Active"]:
+                        if self.user["Accounts"][str(self.account_id)]["active"]:
 
                             self.openPosition(data)
 

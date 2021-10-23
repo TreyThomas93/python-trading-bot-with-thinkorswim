@@ -54,12 +54,10 @@ class Main:
 
             self.not_connected = []
 
-            print(type(RUN_LIVE_TRADER))
-
-            main.logger.INFO(
+            self.logger.INFO(
                 f"LIVE TRADER IS {'ACTIVE' if RUN_LIVE_TRADER else 'INACTIVE'}")
 
-            main.logger.INFO(
+            self.logger.INFO(
                 f"PAPER TRADER IS {'ACTIVE' if RUN_PAPER_TRADER else 'INACTIVE'}\n")
 
             return True
@@ -121,8 +119,8 @@ class Main:
         trade_data = self.gmail.getEmails()
 
         for live_trader in self.traders.values():
-            
-            if self.live_trader_active and RUN_LIVE_TRADER:
+
+            if RUN_LIVE_TRADER:
 
                 live_trader.runTrader(trade_data)
 
@@ -144,7 +142,7 @@ if __name__ == "__main__":
     connected = main.connectAll()
 
     if connected:
-        
+
         while True:
 
             main.run()

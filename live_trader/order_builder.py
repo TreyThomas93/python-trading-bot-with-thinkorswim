@@ -96,19 +96,17 @@ class OrderBuilder:
                 price, 2) if price >= 1 else round(price, 4)
 
             # GET SHARES FOR PARTICULAR STRATEGY
-            strategies = self.user["Accounts"][str(
-                self.account_id)]["Strategies"]
+            strategy_object = self.strategies.find_one({"Trader" : self.user["Name"], "Strategy" : strategy})
 
-            if strategy not in strategies:
+            if not strategy_object:
 
-                self.updateStrategiesObject(strategy, asset_type)
+                self.addNewStrategy(strategy, asset_type)
 
-                strategies = self.mongo.users.find_one({"Name": self.user["Name"]})["Accounts"][str(
-                    self.account_id)]["Strategies"]
+                strategy_object = self.strategies.find_one({"Trader" : self.user["Name"], "Strategy" : strategy})
 
-            active_strategy = strategies[strategy]["Active"]
+            active_strategy = strategy_object["Active"]
 
-            position_size = int(strategies[strategy]["Position_Size"])
+            position_size = int(strategy_object["Position_Size"])
 
             shares = int(
                 position_size/price) if asset_type == "EQUITY" else int((position_size / 100)/price)

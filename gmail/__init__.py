@@ -78,7 +78,7 @@ class Gmail:
                 raise Exception("Creds Not Found!")
 
         except Exception as e:
-            
+
             self.logger.CRITICAL(f"FAILED TO CONNECT TO GMAIL! - {e}\n")
 
             return False
@@ -174,7 +174,8 @@ class Gmail:
                                             "Symbol": symbol.strip(),
                                             "Side": side.upper().strip(),
                                             "Strategy": strategy.replace(".", " ").upper().strip(),
-                                            "Account_ID": account_id
+                                            "Account_ID": account_id,
+                                            "Asset_Type": "EQUITY"
                                         }
 
                                         # IF THIS IS AN OPTION
@@ -191,12 +192,22 @@ class Gmail:
 
                                             obj["Option_Type"] = option_type
 
-                                        trade_data.append(obj)
+                                            obj["Asset_Type"] = "OPTION"
+
+                                        # CHECK TO SEE IF ASSET TYPE AND SIDE ARE A LOGICAL MATCH
+                                        if side.upper().strip() in ["SELL", "BUY"] and obj["Asset_Type"] == "EQUITY" or side.upper().strip() in ["SELL_TO_CLOSE", "SELL_TO_OPEN", "BUY_TO_CLOSE", "BUY_TO_OPEN"] and obj["Asset_Type"] == "OPTION":
+
+                                            trade_data.append(obj)
+
+                                        else:
+
+                                            self.logger.WARNING(__class__.__name__,
+                                                                f"ILLOGICAL MATCH - SIDE: {side.upper().strip()} / ASSET TYPE: {obj['Asset_Type']}")
 
                                 else:
 
-                                    self.logger.ERROR(
-                                        f"MISSING FIELDS FOR STRATEGY {strategy}")
+                                    self.logger.WARNING(__class__.__name__,
+                                                        f"MISSING FIELDS FOR STRATEGY {strategy}")
 
                             break
 

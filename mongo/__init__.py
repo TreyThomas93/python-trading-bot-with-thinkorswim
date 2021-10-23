@@ -44,6 +44,8 @@ class MongoDB:
 
                 self.closed_positions = self.db["closed_positions"]
 
+                self.strategies = self.db["strategies"]
+
                 self.other = self.db["other"]
 
                 self.queue = self.db["queue"]
