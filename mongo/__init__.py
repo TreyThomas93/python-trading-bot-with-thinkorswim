@@ -46,15 +46,11 @@ class MongoDB:
 
                 self.strategies = self.db["strategies"]
 
-                self.other = self.db["other"]
+                self.rejected = self.db["rejected"]
+
+                self.canceled = self.db["canceled"]
 
                 self.queue = self.db["queue"]
-
-                self.logs = self.db["logs"]
-
-                self.balance_history = self.db["balance_history"]
-
-                self.profit_loss_history = self.db["profit_loss_history"]
 
                 self.logger.INFO("CONNECTED TO MONGO!\n")
 

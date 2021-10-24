@@ -46,7 +46,9 @@ class LiveTrader(Tasks, OrderBuilder):
 
         self.strategies = mongo.strategies
 
-        self.other = mongo.other
+        self.rejected = mongo.rejected
+
+        self.canceled = mongo.canceled
 
         self.queue = mongo.queue
 
@@ -68,40 +70,24 @@ class LiveTrader(Tasks, OrderBuilder):
             self.logger.INFO(
             f"NOT RUNNING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n")
 
+    # STEP ONE
     @exception_handler
-    def openPosition(self, trade_data):
+    def sendOrder(self, trade_data, strategy_object):
+
+        # BUILD ORDER WORK ON THIS!!!!!
+        symbol = trade_data["Symbol"]
+
+        side = trade_data["Side"]
 
         strategy = trade_data["Strategy"]
 
-        strategies = self.user["Accounts"][str(
-            self.account_id)]["Strategies"]
+        if strategy_object["Order_Type"] == "Standard":
 
-        if strategies[strategy]["Order_Type"] == "Standard":
+            order, obj =self.standardOrder(trade_data, strategy_object)
 
-            self.sendOrder(self.standardOrder(trade_data))
+        elif strategy_object["Order_Type"] == "OCO":
 
-        elif strategies[strategy]["Order_Type"] == "OCO":
-
-            self.sendOrder(self.OCOorder(trade_data, strategies[strategy]))
-
-    @exception_handler
-    def closePosition(self, trade_data, position_data):
-
-        self.sendOrder(self.standardOrder(trade_data, position_data))
-
-    # STEP ONE
-    @exception_handler
-    def sendOrder(self, order, obj):
-
-        if order == None or obj == None:
-            
-            return
-
-        symbol = obj["Symbol"]
-
-        side = obj["Side"]
-
-        strategy = obj["Strategy"]
+            order, obj = self.OCOorder(trade_data, strategy_object)
 
         # PLACE ORDER ################################################
         resp = self.tdameritrade.placeTDAOrder(order)
@@ -125,7 +111,7 @@ class LiveTrader(Tasks, OrderBuilder):
             self.logger.INFO(
                 f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp.json())['error']}", True)
 
-            self.other.insert_one(other)
+            self.rejected.insert_one(other)
 
             return
 
@@ -174,9 +160,40 @@ class LiveTrader(Tasks, OrderBuilder):
             spec_order = self.tdameritrade.getSpecificOrder(
                 queue_order["Order_ID"])
 
+            # ORDER ID NOT FOUND. ASSUME REMOVED
             if "error" in spec_order:
 
-                direction = "OPEN" if queue_order["Order_Type"] == "BUY" else "CLOSED"
+                side = queue_order["Order_Type"]
+
+                position_type = queue_order["Position_Type"]
+
+                if side == "BUY":
+
+                    if position_type == "Long":
+
+                        direction = "OPEN"
+
+                    elif position_type == "Short":
+
+                        direction = "CLOSED"
+
+                elif side == "SELL":
+
+                    if position_type == "Long":
+
+                        direction = "CLOSED"
+
+                    elif position_type == "Short":
+
+                        direction = "OPEN"
+
+                elif side == "BUY_TO_OPEN" or side == "SELL_TO_OPEN":
+
+                    direction = "OPEN"
+
+                elif side == "BUY_TO_CLOSE" or side == "SELL_TO_CLOSE":
+
+                    direction = "CLOSED"
 
                 self.logger.WARNING(
                     filename=__class__.__name__, warning=f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {direction} POSITIONS")
@@ -219,7 +236,7 @@ class LiveTrader(Tasks, OrderBuilder):
                         "Account_ID": self.account_id
                     }
 
-                    self.other.insert_one(other)
+                    self.rejected.insert_one(other) if new_status == "REJECTED" else self.canceled.insert_one(other)
 
                     self.logger.INFO(
                         f"{new_status.upper()} ORDER For {queue_order['Symbol']} - TRADER: {self.user['Name']}", True)
@@ -437,57 +454,88 @@ class LiveTrader(Tasks, OrderBuilder):
         # UPDATE USER ATTRIBUTE
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 
-        for data in trade_data:
+        for row in trade_data:
 
-            side = data["Side"]
+            strategy = row["Strategy"]
 
-            strategy = data["Strategy"]
+            symbol = row["Symbol"]
+            
+            asset_type = row["AssetType"]
 
-            symbol = data["Symbol"]
+            side = row["Side"]
 
-            account_id = data["Account_ID"]
+            # CHECK OPEN POSITIONS AND QUEUE
+            open_position = self.open_positions.find_one(
+                {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
 
-            # IF SYMBOL NOT FORBIDDEN AND ACCOUNT ID IS EQUAL TO INSTANCE ACCOUNT ID
-            if symbol and self.account_id == account_id:
+            queued = self.queue.find_one(
+                {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
 
-                # CHECK OPEN POSITIONS AND QUEUE
-                open_position = self.open_positions.find_one(
-                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
+            strategy_object = self.strategies.find_one({"Strategy" : strategy, "Trader" : self.user["Name"]})
 
-                queued = self.queue.find_one(
-                    {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
+            if not strategy_object:
 
-                # BUY ##############################
-                if side == "BUY" or side == "BUY_TO_OPEN":
+                self.addNewStrategy(strategy, asset_type)
 
-                    if not open_position and not queued:
+                strategy_object = self.strategies.find_one({"Trader" : self.user["Name"], "Strategy" : strategy})
 
-                        # LIVE TRADE
-                        # THIS CHECK IF USER IS ACTIVE. IF NOT ACTIVE, ALL BUYING STOPS
-                        if self.user["Accounts"][str(self.account_id)]["active"]:
+            position_type = strategy_object["Position_Type"]
 
-                            self.openPosition(data)
+            row["Position_Type"] = position_type
 
-                    elif open_position:
+            if not queued:
 
-                        self.logger.INFO(
-                            f"Symbol {symbol} with strategy {strategy} already an open position")
+                # IS THERE AN OPEN POSITION ALREADY IN MONGO FOR THIS SYMBOL/STRATEGY COMBO
+                if open_position:
 
-                    elif queued:
+                    # NEED TO COVER SHORT
+                    if side == "BUY" and position_type == "Short":
 
-                        self.logger.INFO(
-                            f"Symbol {symbol} with strategy {strategy} already in queue as BUY order")
+                        pass
 
-                # SELL ##############################
-                elif side == "SELL" or side == "SELL_TO_CLOSE":
+                    # NEED TO SELL LONG
+                    elif side == "SELL" and position_type == "Long":
 
-                    if open_position and not queued:
+                        pass
 
-                        # LIVE TRADE
-                        self.closePosition(data, open_position)
+                    # NEED TO SELL LONG OPTION
+                    elif side == "SELL_TO_CLOSE" and position_type == "Long":
 
-                    elif queued:
+                        pass
 
-                        self.logger.INFO(
-                            f"Symbol {symbol} with strategy {strategy} already in queue as SELL order")
+                    # NEED TO COVER SHORT OPTION
+                    elif side == "BUY_TO_CLOSE" and position_type == "Short":
 
+                        pass
+
+                    else:
+
+                        continue
+
+                else:
+
+                    # NEED TO GO LONG
+                    if side == "BUY" and position_type == "Long":
+
+                        pass
+
+                    # NEED TO GO SHORT
+                    elif side == "SELL" and position_type == "Short":
+
+                        pass
+
+                    # NEED TO GO SHORT OPTION
+                    elif side == "SELL_TO_OPEN" and position_type == "Short":
+
+                        pass
+
+                    # NEED TO GO LONG OPTION
+                    elif side == "BUY_TO_OPEN" and position_type == "Long":
+
+                        pass
+
+                    else:
+
+                        continue
+
+                self.sendOrder(row if not open_position else row.update(open_position), strategy_object)

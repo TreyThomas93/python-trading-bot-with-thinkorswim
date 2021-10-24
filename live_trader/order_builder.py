@@ -36,9 +36,10 @@ class OrderBuilder:
             "Side": None,
             "Asset_Type": None,
             "Account_ID": self.account_id,
+            "Position_Type": None
         }
 
-    def standardOrder(self, trade_data, position_data=None, OCOorder=False):
+    def standardOrder(self, trade_data, strategy_object, OCOorder=False):
 
         symbol = trade_data["Symbol"]
 
@@ -68,6 +69,8 @@ class OrderBuilder:
 
         self.obj["Asset_Type"] = asset_type
 
+        self.obj["Position_Type"] = strategy["Position_Type"]
+
         if asset_type == "OPTION":
 
             self.obj["Pre_Symbol"] = trade_data["Pre_Symbol"]
@@ -82,7 +85,7 @@ class OrderBuilder:
         resp = self.tdameritrade.getQuote(
             symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
 
-        price = float(resp[symbol]["bidPrice"]) if side == "BUY" or side == "BUY_TO_OPEN" else float(
+        price = float(resp[symbol]["bidPrice"]) if side in ["BUY", "BUY_TO_OPEN", "BUY_TO_CLOSE"] else float(
             resp[symbol]["askPrice"])
 
         # OCO ORDER NEEDS TO USE ASK PRICE FOR ISSUE WITH THE ORDER BEING TERMINATED UPON BEING PLACED
@@ -90,19 +93,22 @@ class OrderBuilder:
 
             price = float(resp[symbol]["askPrice"])
 
+        # WORK ON THIS!!!!!!!!!
         if side == "BUY" or side == "BUY_TO_OPEN":
 
             self.order["price"] = round(
                 price, 2) if price >= 1 else round(price, 4)
 
             # GET SHARES FOR PARTICULAR STRATEGY
-            strategy_object = self.strategies.find_one({"Trader" : self.user["Name"], "Strategy" : strategy})
+            strategy_object = self.strategies.find_one(
+                {"Trader": self.user["Name"], "Strategy": strategy})
 
             if not strategy_object:
 
                 self.addNewStrategy(strategy, asset_type)
 
-                strategy_object = self.strategies.find_one({"Trader" : self.user["Name"], "Strategy" : strategy})
+                strategy_object = self.strategies.find_one(
+                    {"Trader": self.user["Name"], "Strategy": strategy})
 
             active_strategy = strategy_object["Active"]
 
@@ -142,12 +148,13 @@ class OrderBuilder:
             self.obj["Qty"] = position_data["Qty"]
 
             self.obj["Position_Size"] = position_data["Position_Size"]
-
+        ############################################################################
+        
         return self.order, self.obj
 
-    def OCOorder(self, trade_data, strategy_data):
+    def OCOorder(self, trade_data, strategy_object):
 
-        order, obj = self.standardOrder(trade_data, OCOorder=True)
+        order, obj = self.standardOrder(trade_data, strategy_object, OCOorder=True)
 
         symbol = trade_data["Symbol"]
 

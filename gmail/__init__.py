@@ -136,8 +136,8 @@ class Gmail:
 
         trade_data = []
 
-        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
-        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY, ACCOUNT ID
+        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY
+        # Alert: New Symbol: ABC was added to LinRegEMA_v2, BUY
 
         for payload in payloads:
 
@@ -157,52 +157,44 @@ class Gmail:
 
                             symbols = sep[0].strip().split(",")
 
-                            strategy, side, * \
-                                account_ids = sep[1].strip().split(",")
-
-                            account_ids = [int(account_id.replace(
-                                ".", " ").strip()) for account_id in account_ids]
+                            strategy, side = sep[1].strip().split(",")
 
                             for symbol in symbols:
 
-                                if strategy != "" and side != "" and len(account_ids) > 0:
+                                if strategy != "" and side != "":
 
-                                    # ITERATE OVER LIST OF ACCOUNT IDS FOR THIS PARTICULAR STRATEGY AND SYMBOL
-                                    for account_id in account_ids:
+                                    obj = {
+                                        "Symbol": symbol.strip(),
+                                        "Side": side.upper().strip(),
+                                        "Strategy": strategy.replace(".", " ").upper().strip(),
+                                        "Asset_Type": "EQUITY"
+                                    }
 
-                                        obj = {
-                                            "Symbol": symbol.strip(),
-                                            "Side": side.upper().strip(),
-                                            "Strategy": strategy.replace(".", " ").upper().strip(),
-                                            "Account_ID": account_id,
-                                            "Asset_Type": "EQUITY"
-                                        }
+                                    # IF THIS IS AN OPTION
+                                    if "." in symbol:
 
-                                        # IF THIS IS AN OPTION
-                                        if "." in symbol:
+                                        symbol, pre_symbol, exp_date, option_type = self.handleOption(
+                                            symbol)
 
-                                            symbol, pre_symbol, exp_date, option_type = self.handleOption(
-                                                symbol)
+                                        obj["Symbol"] = symbol
 
-                                            obj["Symbol"] = symbol
+                                        obj["Pre_Symbol"] = pre_symbol
 
-                                            obj["Pre_Symbol"] = pre_symbol
+                                        obj["Exp_Date"] = exp_date
 
-                                            obj["Exp_Date"] = exp_date
+                                        obj["Option_Type"] = option_type
 
-                                            obj["Option_Type"] = option_type
+                                        obj["Asset_Type"] = "OPTION"
 
-                                            obj["Asset_Type"] = "OPTION"
+                                    # CHECK TO SEE IF ASSET TYPE AND SIDE ARE A LOGICAL MATCH
+                                    if side.upper().strip() in ["SELL", "BUY"] and obj["Asset_Type"] == "EQUITY" or side.upper().strip() in ["SELL_TO_CLOSE", "SELL_TO_OPEN", "BUY_TO_CLOSE", "BUY_TO_OPEN"] and obj["Asset_Type"] == "OPTION":
 
-                                        # CHECK TO SEE IF ASSET TYPE AND SIDE ARE A LOGICAL MATCH
-                                        if side.upper().strip() in ["SELL", "BUY"] and obj["Asset_Type"] == "EQUITY" or side.upper().strip() in ["SELL_TO_CLOSE", "SELL_TO_OPEN", "BUY_TO_CLOSE", "BUY_TO_OPEN"] and obj["Asset_Type"] == "OPTION":
+                                        trade_data.append(obj)
 
-                                            trade_data.append(obj)
+                                    else:
 
-                                        else:
-
-                                            self.logger.WARNING(__class__.__name__,
-                                                                f"ILLOGICAL MATCH - SIDE: {side.upper().strip()} / ASSET TYPE: {obj['Asset_Type']}")
+                                        self.logger.WARNING(__class__.__name__,
+                                                            f"ILLOGICAL MATCH - SIDE: {side.upper().strip()} / ASSET TYPE: {obj['Asset_Type']}")
 
                                 else:
 
