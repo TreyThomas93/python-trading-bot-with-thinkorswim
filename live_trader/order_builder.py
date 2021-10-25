@@ -1,5 +1,19 @@
 # imports
 from assets.helper_functions import getDatetime
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/config.env")
+
+BUY_PRICE = os.getenv('BUY_PRICE')
+SELL_PRICE = os.getenv('SELL_PRICE')
+TAKE_PROFIT_PERCENTAGE = float(os.getenv('TAKE_PROFIT_PERCENTAGE'))
+STOP_LOSS_PERCENTAGE = float(os.getenv('STOP_LOSS_PERCENTAGE'))
 
 
 class OrderBuilder:
@@ -28,7 +42,6 @@ class OrderBuilder:
             "Symbol": None,
             "Qty": None,
             "Position_Size": None,
-            "Date": None,
             "Strategy": None,
             "Trader": self.user["Name"],
             "Order_ID": None,
@@ -39,7 +52,7 @@ class OrderBuilder:
             "Position_Type": None
         }
 
-    def standardOrder(self, trade_data, strategy_object, OCOorder=False):
+    def standardOrder(self, trade_data, strategy_object, direction, OCOorder=False):
 
         symbol = trade_data["Symbol"]
 
@@ -49,6 +62,7 @@ class OrderBuilder:
 
         asset_type = "OPTION" if "Pre_Symbol" in trade_data else "EQUITY"
 
+        # TDA ORDER OBJECT
         self.order["session"] = "SEAMLESS" if asset_type == "EQUITY" else "NORMAL"
 
         self.order["duration"] = "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY"
@@ -58,10 +72,10 @@ class OrderBuilder:
         self.order["orderLegCollection"][0]["instrument"]["symbol"] = symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]
 
         self.order["orderLegCollection"][0]["instrument"]["assetType"] = asset_type
+        ##############################################################
 
+        # MONGO OBJECT
         self.obj["Symbol"] = symbol
-
-        self.obj["Date"] = getDatetime()
 
         self.obj["Strategy"] = strategy
 
@@ -69,7 +83,10 @@ class OrderBuilder:
 
         self.obj["Asset_Type"] = asset_type
 
-        self.obj["Position_Type"] = strategy["Position_Type"]
+        self.obj["Position_Type"] = strategy_object["Position_Type"]
+
+        self.obj["Order_Type"] = strategy_object["Order_Type"]
+        ##############################################################
 
         if asset_type == "OPTION":
 
@@ -85,39 +102,26 @@ class OrderBuilder:
         resp = self.tdameritrade.getQuote(
             symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
 
-        price = float(resp[symbol]["bidPrice"]) if side in ["BUY", "BUY_TO_OPEN", "BUY_TO_CLOSE"] else float(
-            resp[symbol]["askPrice"])
+        price = float(resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]][BUY_PRICE]) if side in ["BUY", "BUY_TO_OPEN", "BUY_TO_CLOSE"] else float(
+            resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]][SELL_PRICE])
 
         # OCO ORDER NEEDS TO USE ASK PRICE FOR ISSUE WITH THE ORDER BEING TERMINATED UPON BEING PLACED
         if OCOorder:
 
-            price = float(resp[symbol]["askPrice"])
+            price = float(resp[symbol][SELL_PRICE])
 
-        # WORK ON THIS!!!!!!!!!
-        if side == "BUY" or side == "BUY_TO_OPEN":
+        self.order["price"] = round(
+            price, 2) if price >= 1 else round(price, 4)
 
-            self.order["price"] = round(
-                price, 2) if price >= 1 else round(price, 4)
-
-            # GET SHARES FOR PARTICULAR STRATEGY
-            strategy_object = self.strategies.find_one(
-                {"Trader": self.user["Name"], "Strategy": strategy})
-
-            if not strategy_object:
-
-                self.addNewStrategy(strategy, asset_type)
-
-                strategy_object = self.strategies.find_one(
-                    {"Trader": self.user["Name"], "Strategy": strategy})
-
-            active_strategy = strategy_object["Active"]
+        # IF OPENING POSITION
+        if direction == "OPEN POSITION":
 
             position_size = int(strategy_object["Position_Size"])
 
             shares = int(
                 position_size/price) if asset_type == "EQUITY" else int((position_size / 100)/price)
 
-            if active_strategy and shares > 0:
+            if strategy_object["Active"] and shares > 0:
 
                 self.order["orderLegCollection"][0]["quantity"] = shares
 
@@ -125,40 +129,61 @@ class OrderBuilder:
 
                 self.obj["Position_Size"] = position_size
 
-                self.obj["Buy_Price"] = price
+                self.obj["Entry_Price"] = price
+
+                self.obj["Entry_Date"] = getDatetime()
 
             else:
 
                 self.logger.WARNING(
-                    __class__.__name__, f"{side} ORDER STOPPED: STRATEGY STATUS - {active_strategy} SHARES - {shares}")
+                    __class__.__name__, f"{side} ORDER STOPPED: STRATEGY STATUS - {strategy_object['Active']} SHARES - {shares}")
 
                 return None, None
 
-        elif side == "SELL" or side == "SELL_TO_CLOSE":
+        # IF CLOSING A POSITION
+        elif direction == "CLOSE POSITION":
 
-            self.order["price"] = round(
-                price, 2) if price >= 1 else round(price, 4)
+            self.order["orderLegCollection"][0]["quantity"] = trade_data["Qty"]
 
-            self.order["orderLegCollection"][0]["quantity"] = position_data["Qty"]
+            self.obj["Entry_Price"] = trade_data["Entry_Price"]
 
-            self.obj["Buy_Price"] = position_data["Buy_Price"]
+            self.obj["Entry_Date"] = trade_data["Entry_Date"]
 
-            self.obj["Buy_Date"] = position_data["Date"]
+            self.obj["Exit_Price"] = trade_data["Exit_Price"]
 
-            self.obj["Qty"] = position_data["Qty"]
+            self.obj["Exit_Date"] = trade_data["Exit_Date"]
 
-            self.obj["Position_Size"] = position_data["Position_Size"]
+            self.obj["Qty"] = trade_data["Qty"]
+
+            self.obj["Position_Size"] = trade_data["Position_Size"]
         ############################################################################
-        
+
         return self.order, self.obj
 
-    def OCOorder(self, trade_data, strategy_object):
+    def OCOorder(self, trade_data, strategy_object, direction):
 
-        order, obj = self.standardOrder(trade_data, strategy_object, OCOorder=True)
-
-        symbol = trade_data["Symbol"]
+        order, obj = self.standardOrder(
+            trade_data, strategy_object, direction, OCOorder=True)
 
         asset_type = "OPTION" if "Pre_Symbol" in trade_data else "EQUITY"
+
+        side = trade_data["Side"]
+
+        if side == "BUY_TO_OPEN":
+
+            instruction = "SELL_TO_CLOSE"
+
+        elif side == "BUY":
+
+            instruction = "SELL"
+
+        elif side == "SELL":
+
+            instruction = "BUY"
+
+        elif side == "SELL_TO_OPEN":
+
+            instruction = "BUY_TO_CLOSE"
 
         order["orderStrategyType"] = "TRIGGER"
 
@@ -171,14 +196,15 @@ class OrderBuilder:
                         "session": "NORMAL",
                         "duration": "GOOD_TILL_CANCEL",
                         "orderType": "LIMIT",
-                        "price": None,
+                        "price": round(
+                            order["price"] * TAKE_PROFIT_PERCENTAGE, 2) if order["price"] * TAKE_PROFIT_PERCENTAGE >= 1 else round(order["price"] * TAKE_PROFIT_PERCENTAGE, 4),
                         "orderLegCollection": [
                             {
-                                "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
-                                "quantity": None,
+                                "instruction": instruction,
+                                "quantity": obj["Qty"],
                                 "instrument": {
                                     "assetType": asset_type,
-                                    "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]
+                                    "symbol": trade_data["Symbol"] if asset_type == "EQUITY" else trade_data["Pre_Symbol"]
                                 }
                             }
                         ]
@@ -188,14 +214,14 @@ class OrderBuilder:
                         "session": "NORMAL",
                         "duration": "GOOD_TILL_CANCEL",
                         "orderType": "STOP",
-                        "stopPrice": None,
+                        "stopPrice": round(order["price"] * STOP_LOSS_PERCENTAGE, 2) if order["price"] * STOP_LOSS_PERCENTAGE >= 1 else round(order["price"] * STOP_LOSS_PERCENTAGE, 4),
                         "orderLegCollection": [
                             {
-                                "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
-                                "quantity": None,
+                                "instruction": instruction,
+                                "quantity": obj["Qty"],
                                 "instrument": {
                                     "assetType": asset_type,
-                                    "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]
+                                    "symbol": trade_data["Symbol"] if asset_type == "EQUITY" else trade_data["Pre_Symbol"]
                                 }
                             }
                         ]

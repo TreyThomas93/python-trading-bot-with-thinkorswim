@@ -1,4 +1,4 @@
-.env
+config.env
 .vscode
 *__pycache__
 *.txt

@@ -1,6 +1,17 @@
 # imports
 from assets.helper_functions import getDatetime
+from dotenv import load_dotenv
+from pathlib import Path
+import os
 
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/config.env")
+
+BUY_PRICE = os.getenv('BUY_PRICE')
+SELL_PRICE = os.getenv('SELL_PRICE')
 
 class PaperTrader():
 
@@ -30,13 +41,13 @@ class PaperTrader():
 
             resp = self.tdameritrade.getQuote(symbol)
 
-            price = float(resp[symbol]["lastPrice"])
+            price = float(resp[symbol][BUY_PRICE]) if position_type == "LONG" else float(resp[symbol][SELL_PRICE])
 
             obj = {
                 "Symbol": symbol,
                 "Qty": 1,
-                "Buy_Price": price,
-                "Date": getDatetime(),
+                "Entry_Price": price,
+                "Entry_Date": getDatetime(),
                 "Strategy": strategy,
                 "Position_Type": position_type,
                 "Asset_Type": asset_type
@@ -44,6 +55,10 @@ class PaperTrader():
 
             # ADD TO OPEN POSITIONS
             self.open_positions.insert_one(obj)
+
+            msg = f"PAPER TRADER OPENED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}\n"
+
+            self.logger.INFO(msg)
 
         except Exception as e:
 
@@ -59,9 +74,9 @@ class PaperTrader():
 
             qty = position["Qty"]
 
-            position_price = position["Buy_Price"]
+            entry_price = position["Entry_Price"]
 
-            position_date = position["Date"]
+            entry_date = position["Entry_Date"]
 
             position_type = position["Position_Type"]
 
@@ -69,23 +84,27 @@ class PaperTrader():
 
             resp = self.tdameritrade.getQuote(symbol)
 
-            price = float(resp[symbol]["lastPrice"])
+            if position_type == "LONG":
 
-            sell_price = round(price * qty, 2)
+                price = float(resp[symbol][BUY_PRICE])
 
-            buy_price = round(position_price * qty, 2)
+                sell_price = round(price * qty, 2)
 
-            if buy_price != 0:
+                buy_price = round(entry_price * qty, 2)
 
-                if position_type == "Long":
+                rov = round(
+                    ((sell_price / buy_price) - 1) * 100, 2)
 
-                    rov = round(
-                        ((sell_price / buy_price) - 1) * 100, 2)
+            elif position_type == "SHORT":
 
-                elif position_type == "Short":
+                price = float(resp[symbol][SELL_PRICE])
 
-                    rov = round(
-                        ((buy_price / sell_price) - 1) * 100, 2)
+                sell_price = round(price * qty, 2)
+
+                buy_price = round(entry_price * qty, 2)
+
+                rov = round(
+                    ((buy_price / sell_price) - 1) * 100, 2)
 
             else:
 
@@ -94,10 +113,10 @@ class PaperTrader():
             obj = {
                 "Symbol": symbol,
                 "Qty": qty,
-                "Buy_Price": position_price,
-                "Buy_Date": position_date,
-                "Sell_Price": price,
-                "Sell_Date": getDatetime(),
+                "Entry_Price": entry_price,
+                "Entry_Date": entry_date,
+                "Exit_Price": price,
+                "Exit_Date": getDatetime(),
                 "Strategy": strategy,
                 "ROV": rov,
                 "Position_Type": position_type,
@@ -110,6 +129,10 @@ class PaperTrader():
             # REMOVE FROM OPEN POSITIONS
             self.open_positions.delete_one(
                 {"Symbol": symbol, "Strategy": strategy})
+
+            msg = f"PAPER TRADER CLOSED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}\n"
+
+            self.logger.INFO(msg)
 
         except Exception as e:
 
@@ -137,23 +160,16 @@ class PaperTrader():
 
                 row["Position_Type"] = strategy_position_type
 
-                # USE STRATEGY_POSITION_TYPE TO DETERMINE IF ALERT NEEDS TO GO LONG OR SHORT
-                # MyRSIStrategy, BUY, 123456789
-                # MyRSIStrategy, SELL, 123456789
-                # MyRSIStrategy - LONG
-                # THEREFORE, IF A SELL ALERT AND STRATEGY IS LONG, THE BOT KNOWS TO SELL LONG, AND NOT GO SHORT
-                # THEREFORE, IF A BUY ALERT AND STRATEGY IS SHORT, THE BOT KNOWS TO BUY SHORT, AND NOT GO LONG
-
                 # EQUITY
                 if side == "BUY":
 
                     # IF BUY ORDER FOR LONG POSITION
-                    if strategy_position_type == "Long" and not open_position:
+                    if strategy_position_type == "LONG" and not open_position:
 
                         self.openPosition(row)
 
                     # IF BUY ORDER FOR SHORT POSITION
-                    elif strategy_position_type == "Short" and open_position:
+                    elif strategy_position_type == "SHORT" and open_position:
 
                         self.closePosition(row, open_position)
 
@@ -161,12 +177,12 @@ class PaperTrader():
                 elif side == "SELL":
 
                     # IF SELL ORDER FOR LONG POSITION
-                    if strategy_position_type == "Long" and open_position:
+                    if strategy_position_type == "LONG" and open_position:
 
                         self.closePosition(row, open_position)
 
                     # IF SELL ORDER FOR SHORT POSITION
-                    elif strategy_position_type == "Short" and not open_position:
+                    elif strategy_position_type == "SHORT" and not open_position:
 
                         self.openPosition(row)
 
@@ -176,7 +192,7 @@ class PaperTrader():
                     if not open_position:
 
                         # CHECKS TO MAKE SURE THE POSITION TYPES MATCH UP WITH THE STRATEGY POSITION TYPE
-                        if (side == "BUY_TO_OPEN" and strategy_position_type == "Long") or (side == "SELL_TO_OPEN" and strategy_position_type == "Short"):
+                        if (side == "BUY_TO_OPEN" and strategy_position_type == "LONG") or (side == "SELL_TO_OPEN" and strategy_position_type == "SHORT"):
 
                             self.openPosition(row)
 
@@ -186,7 +202,7 @@ class PaperTrader():
                     if open_position:
 
                         # CHECKS TO MAKE SURE THE POSITION TYPES MATCH UP WITH THE STRATEGY POSITION TYPE
-                        if (side == "BUY_TO_CLOSE" and strategy_position_type == "Short") or (side == "SELL_TO_CLOSE" and strategy_position_type == "Long"):
+                        if (side == "BUY_TO_CLOSE" and strategy_position_type == "SHORT") or (side == "SELL_TO_CLOSE" and strategy_position_type == "LONG"):
 
                             self.closePosition(row, open_position)
 

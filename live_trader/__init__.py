@@ -6,15 +6,15 @@ from live_trader.order_builder import OrderBuilder
 from dotenv import load_dotenv
 from pathlib import Path
 import os
-import inspect
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 path = Path(THIS_FOLDER)
 
-load_dotenv(dotenv_path=f"{path.parent}/.env")
+load_dotenv(dotenv_path=f"{path.parent}/config.env")
 
 RUN_TASKS = True if os.getenv('RUN_TASKS') == "True" else False
+
 
 class LiveTrader(Tasks, OrderBuilder):
 
@@ -68,66 +68,68 @@ class LiveTrader(Tasks, OrderBuilder):
         else:
 
             self.logger.INFO(
-            f"NOT RUNNING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n")
+                f"NOT RUNNING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n")
 
     # STEP ONE
     @exception_handler
-    def sendOrder(self, trade_data, strategy_object):
+    def sendOrder(self, trade_data, strategy_object, direction):
 
-        # BUILD ORDER WORK ON THIS!!!!!
-        symbol = trade_data["Symbol"]
+        from pprint import pprint
 
-        side = trade_data["Side"]
+        order_type = strategy_object["Order_Type"]
 
-        strategy = trade_data["Strategy"]
+        if order_type == "STANDARD":
 
-        if strategy_object["Order_Type"] == "Standard":
+            order, obj = self.standardOrder(
+                trade_data, strategy_object, direction)
 
-            order, obj =self.standardOrder(trade_data, strategy_object)
+        elif order_type == "OCO":
 
-        elif strategy_object["Order_Type"] == "OCO":
+            order, obj = self.OCOorder(trade_data, strategy_object, direction)
 
-            order, obj = self.OCOorder(trade_data, strategy_object)
+        pprint(obj)
+        print("\n")
+        pprint(order)
 
-        # PLACE ORDER ################################################
-        resp = self.tdameritrade.placeTDAOrder(order)
 
-        status_code = resp.status_code
+      # PLACE ORDER ################################################
+      # resp = self.tdameritrade.placeTDAOrder(order)
 
-        acceptable_status = [200, 201]
+      # status_code = resp.status_code
 
-        if status_code not in acceptable_status:
+      # if status_code not in [200, 201]:
 
-            other = {
-                "Symbol": symbol,
-                "Order_Type": side,
-                "Order_Status": "REJECTED",
-                "Strategy": strategy,
-                "Trader": self.user["Name"],
-                "Date": getDatetime(),
-                "Account_ID": self.account_id
-            }
+      #     other = {
+      #         "Symbol": symbol,
+      #         "Order_Type": side,
+      #         "Order_Status": "REJECTED",
+      #         "Strategy": strategy,
+      #         "Trader": self.user["Name"],
+      #         "Date": getDatetime(),
+      #         "Account_ID": self.account_id
+      #     }
 
-            self.logger.INFO(
-                f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp.json())['error']}", True)
+      #     self.logger.INFO(
+      #         f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp.json())['error']}", True)
 
-            self.rejected.insert_one(other)
+      #     self.rejected.insert_one(other)
 
-            return
+      #     return
 
-        # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
-        obj["Order_ID"] = int(
-            (resp.headers["Location"]).split("/")[-1].strip())
+      # # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
+      # obj["Order_ID"] = int(
+      #     (resp.headers["Location"]).split("/")[-1].strip())
 
-        obj["Order_Status"] = "QUEUED"
+      # obj["Order_Status"] = "QUEUED"
 
-        self.queueOrder(obj)
+      # self.queueOrder(obj)
 
-        response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
+      # response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
 
-        self.logger.INFO(response_msg)
+      # self.logger.INFO(response_msg)
 
     # STEP TWO
+
     @exception_handler
     def queueOrder(self, order):
         """ METHOD FOR QUEUEING ORDER TO QUEUE COLLECTION IN MONGODB
@@ -236,7 +238,8 @@ class LiveTrader(Tasks, OrderBuilder):
                         "Account_ID": self.account_id
                     }
 
-                    self.rejected.insert_one(other) if new_status == "REJECTED" else self.canceled.insert_one(other)
+                    self.rejected.insert_one(
+                        other) if new_status == "REJECTED" else self.canceled.insert_one(other)
 
                     self.logger.INFO(
                         f"{new_status.upper()} ORDER For {queue_order['Symbol']} - TRADER: {self.user['Name']}", True)
@@ -459,8 +462,8 @@ class LiveTrader(Tasks, OrderBuilder):
             strategy = row["Strategy"]
 
             symbol = row["Symbol"]
-            
-            asset_type = row["AssetType"]
+
+            asset_type = row["Asset_Type"]
 
             side = row["Side"]
 
@@ -471,13 +474,15 @@ class LiveTrader(Tasks, OrderBuilder):
             queued = self.queue.find_one(
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
 
-            strategy_object = self.strategies.find_one({"Strategy" : strategy, "Trader" : self.user["Name"]})
+            strategy_object = self.strategies.find_one(
+                {"Strategy": strategy, "Trader": self.user["Name"]})
 
             if not strategy_object:
 
                 self.addNewStrategy(strategy, asset_type)
 
-                strategy_object = self.strategies.find_one({"Trader" : self.user["Name"], "Strategy" : strategy})
+                strategy_object = self.strategies.find_one(
+                    {"Trader": self.user["Name"], "Strategy": strategy})
 
             position_type = strategy_object["Position_Type"]
 
@@ -485,26 +490,30 @@ class LiveTrader(Tasks, OrderBuilder):
 
             if not queued:
 
+                direction = None
+
                 # IS THERE AN OPEN POSITION ALREADY IN MONGO FOR THIS SYMBOL/STRATEGY COMBO
                 if open_position:
 
+                    direction = "CLOSE POSITION"
+
                     # NEED TO COVER SHORT
-                    if side == "BUY" and position_type == "Short":
+                    if side == "BUY" and position_type == "SHORT":
 
                         pass
 
                     # NEED TO SELL LONG
-                    elif side == "SELL" and position_type == "Long":
+                    elif side == "SELL" and position_type == "LONG":
 
                         pass
 
                     # NEED TO SELL LONG OPTION
-                    elif side == "SELL_TO_CLOSE" and position_type == "Long":
+                    elif side == "SELL_TO_CLOSE" and position_type == "LONG":
 
                         pass
 
                     # NEED TO COVER SHORT OPTION
-                    elif side == "BUY_TO_CLOSE" and position_type == "Short":
+                    elif side == "BUY_TO_CLOSE" and position_type == "SHORT":
 
                         pass
 
@@ -514,23 +523,25 @@ class LiveTrader(Tasks, OrderBuilder):
 
                 else:
 
+                    direction = "OPEN POSITION"
+
                     # NEED TO GO LONG
-                    if side == "BUY" and position_type == "Long":
+                    if side == "BUY" and position_type == "LONG":
 
                         pass
 
                     # NEED TO GO SHORT
-                    elif side == "SELL" and position_type == "Short":
+                    elif side == "SELL" and position_type == "SHORT":
 
                         pass
 
                     # NEED TO GO SHORT OPTION
-                    elif side == "SELL_TO_OPEN" and position_type == "Short":
+                    elif side == "SELL_TO_OPEN" and position_type == "SHORT":
 
                         pass
 
                     # NEED TO GO LONG OPTION
-                    elif side == "BUY_TO_OPEN" and position_type == "Long":
+                    elif side == "BUY_TO_OPEN" and position_type == "LONG":
 
                         pass
 
@@ -538,4 +549,7 @@ class LiveTrader(Tasks, OrderBuilder):
 
                         continue
 
-                self.sendOrder(row if not open_position else row.update(open_position), strategy_object)
+                if direction != None:
+
+                    self.sendOrder(row if not open_position else row.update(
+                        open_position), strategy_object, direction)

@@ -25,25 +25,21 @@ class Tasks:
         """
 
         obj = {"Active": True,
-               "Order_Type": "Standard",
+               "Order_Type": "STANDARD",
                "Asset_Type": asset_type,
                "Position_Size": 500,
-               "Position_Type": "Long",
+               "Position_Type": "LONG",
                "Trader": self.user["Name"],
                "Strategy": strategy,
                }
 
         # IF STRATEGY NOT IN STRATEGIES COLLECTION IN MONGO, THEN ADD IT
-        # self.strategies.update({"Name": self.user["Name"], strategy: {"$exists": False}}, {
-        #     "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": obj}})
 
-        resp = self.strategies.update(
+        self.strategies.update(
             {"Strategy": strategy},
             {"$setOnInsert": obj},
             upsert=True
         )
-
-        print(resp)
 
     def runTasks(self):
         """ METHOD RUNS TASKS ON WHILE LOOP EVERY 5 - 60 SECONDS DEPENDING.

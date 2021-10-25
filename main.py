@@ -19,7 +19,7 @@ assets = os.path.join(THIS_FOLDER, 'assets')
 
 path = Path(THIS_FOLDER)
 
-load_dotenv(dotenv_path=f"{path.parent}/.env")
+load_dotenv(dotenv_path=f"{path.parent}/config.env")
 
 RUN_LIVE_TRADER = True if os.getenv('RUN_LIVE_TRADER') == "True" else False
 RUN_PAPER_TRADER = True if os.getenv('RUN_PAPER_TRADER') == "True" else False

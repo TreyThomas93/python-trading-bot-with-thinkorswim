@@ -8,7 +8,7 @@ THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 path = Path(THIS_FOLDER)
 
-load_dotenv(dotenv_path=f"{path.parent}/.env")
+load_dotenv(dotenv_path=f"{path.parent}/config.env")
 
 PUSH_API_KEY = os.getenv('PUSH_API_KEY')
 
