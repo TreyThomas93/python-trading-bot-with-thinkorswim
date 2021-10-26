@@ -63,7 +63,7 @@ class OrderBuilder:
         asset_type = "OPTION" if "Pre_Symbol" in trade_data else "EQUITY"
 
         # TDA ORDER OBJECT
-        self.order["session"] = "SEAMLESS" if asset_type == "EQUITY" else "NORMAL"
+        self.order["session"] = "NORMAL"
 
         self.order["duration"] = "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY"
 
@@ -123,9 +123,9 @@ class OrderBuilder:
 
             if strategy_object["Active"] and shares > 0:
 
-                self.order["orderLegCollection"][0]["quantity"] = shares
+                self.order["orderLegCollection"][0]["quantity"] = 1
 
-                self.obj["Qty"] = shares
+                self.obj["Qty"] = 1
 
                 self.obj["Position_Size"] = position_size
 

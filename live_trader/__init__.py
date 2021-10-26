@@ -61,7 +61,7 @@ class LiveTrader(Tasks, OrderBuilder):
         Tasks.__init__(self)
 
         # If user wants to run tasks and there are more than two methods (outside of runTasks and addNewStrategy) found, indicating post production tasks were found.
-        if RUN_TASKS and len([i for i in dir(Tasks) if "_" not in i]) > 2:
+        if RUN_TASKS:
 
             Thread(target=self.runTasks, daemon=True).start()
 
@@ -74,7 +74,11 @@ class LiveTrader(Tasks, OrderBuilder):
     @exception_handler
     def sendOrder(self, trade_data, strategy_object, direction):
 
-        from pprint import pprint
+        symbol = trade_data["Symbol"]
+
+        strategy = trade_data["Strategy"]
+
+        side = trade_data["Side"]
 
         order_type = strategy_object["Order_Type"]
 
@@ -87,49 +91,43 @@ class LiveTrader(Tasks, OrderBuilder):
 
             order, obj = self.OCOorder(trade_data, strategy_object, direction)
 
-        pprint(obj)
-        print("\n")
-        pprint(order)
+        # PLACE ORDER ################################################
+        resp = self.tdameritrade.placeTDAOrder(order)
 
+        status_code = resp.status_code
 
-      # PLACE ORDER ################################################
-      # resp = self.tdameritrade.placeTDAOrder(order)
+        if status_code not in [200, 201]:
 
-      # status_code = resp.status_code
+            other = {
+                "Symbol": symbol,
+                "Order_Type": side,
+                "Order_Status": "REJECTED",
+                "Strategy": strategy,
+                "Trader": self.user["Name"],
+                "Date": getDatetime(),
+                "Account_ID": self.account_id
+            }
 
-      # if status_code not in [200, 201]:
+            self.logger.INFO(
+                f"{symbol} REJECTED For {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)} - REASON: {(resp.json())['error']}")
 
-      #     other = {
-      #         "Symbol": symbol,
-      #         "Order_Type": side,
-      #         "Order_Status": "REJECTED",
-      #         "Strategy": strategy,
-      #         "Trader": self.user["Name"],
-      #         "Date": getDatetime(),
-      #         "Account_ID": self.account_id
-      #     }
+            self.rejected.insert_one(other)
 
-      #     self.logger.INFO(
-      #         f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp.json())['error']}", True)
+            return
 
-      #     self.rejected.insert_one(other)
+        # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
+        obj["Order_ID"] = int(
+            (resp.headers["Location"]).split("/")[-1].strip())
 
-      #     return
+        obj["Order_Status"] = "QUEUED"
 
-      # # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
-      # obj["Order_ID"] = int(
-      #     (resp.headers["Location"]).split("/")[-1].strip())
+        self.queueOrder(obj)
 
-      # obj["Order_Status"] = "QUEUED"
+        response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}"
 
-      # self.queueOrder(obj)
-
-      # response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
-
-      # self.logger.INFO(response_msg)
+        self.logger.INFO(response_msg)
 
     # STEP TWO
-
     @exception_handler
     def queueOrder(self, order):
         """ METHOD FOR QUEUEING ORDER TO QUEUE COLLECTION IN MONGODB
@@ -220,6 +218,12 @@ class LiveTrader(Tasks, OrderBuilder):
 
                 if new_status == "FILLED":
 
+                    # CHECK IF OCO ORDER AND THEN GET THE CHILDREN
+                    if queue_order["Order_Type"] == "OCO":
+
+                        queue_order = {**queue_order, **
+                                       self.extractOCOchildren(spec_order)}
+
                     self.pushOrder(queue_order, spec_order)
 
                 elif new_status == "CANCELED" or new_status == "REJECTED":
@@ -242,7 +246,7 @@ class LiveTrader(Tasks, OrderBuilder):
                         other) if new_status == "REJECTED" else self.canceled.insert_one(other)
 
                     self.logger.INFO(
-                        f"{new_status.upper()} ORDER For {queue_order['Symbol']} - TRADER: {self.user['Name']}", True)
+                        f"{new_status.upper()} ORDER For {queue_order['Symbol']} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}")
 
                 else:
 
@@ -275,17 +279,11 @@ class LiveTrader(Tasks, OrderBuilder):
 
             shares = int(queue_order["Qty"])
 
-        if price < 1:
-
-            price = round(price, 4)
-
-        else:
-
-            price = round(price, 2)
+        price = round(price, 2) if price >= 1 else round(price, 4)
 
         strategy = queue_order["Strategy"]
 
-        order_type = queue_order["Order_Type"]
+        side = queue_order["Side"]
 
         account_id = queue_order["Account_ID"]
 
@@ -293,10 +291,13 @@ class LiveTrader(Tasks, OrderBuilder):
 
         asset_type = queue_order["Asset_Type"]
 
+        position_type = queue_order["Position_Type"]
+
         obj = {
             "Symbol": symbol,
             "Strategy": strategy,
             "Position_Size": position_size,
+            "Position_Type": position_type,
             "Data_Integrity": data_integrity,
             "Trader": self.user["Name"],
             "Account_ID": account_id,
@@ -311,11 +312,48 @@ class LiveTrader(Tasks, OrderBuilder):
 
             obj["Option_Type"] = queue_order["Option_Type"]
 
-        if order_type == "BUY" or order_type == "BUY_TO_OPEN":
+        direction = None
+
+        if side == "BUY":
+
+            # PUSH TO OPEN POSITIONS
+            if position_type == "LONG":
+
+                direction = "OPEN POSITION"
+
+            # PUSH TO CLOSED POSITIONS
+            elif position_type == "SHORT":
+
+                direction = "CLOSE POSITION"
+
+        elif side == "SELL":
+
+            # PUSH TO CLOSED POSITIONS
+            if position_type == "LONG":
+
+                direction = "CLOSE POSITION"
+
+            # PUSH TO OPEN POSITIONS
+            elif position_type == "SHORT":
+
+                direction = "OPEN POSITION"
+
+        # PUSH TO CLOSED POSITIONS
+        elif side in ["BUY_TO_CLOSE", "SELL_TO_CLOSE"]:
+
+            direction = "CLOSE POSITION"
+
+        # PUSH TO OPEN POSITIONS
+        elif side in ["BUY_TO_OPEN", "SELL_TO_OPEN"]:
+
+            direction = "OPEN POSITION"
+
+        # IF OPENING A POSITION
+        if direction == "OPEN POSITION":
 
             obj["Qty"] = shares
 
-            obj["Buy_Price"] = price
+            obj["Entry_Price"] = price
 
             obj["Date"] = getDatetime()
 
@@ -342,55 +380,44 @@ class LiveTrader(Tasks, OrderBuilder):
 
                 self.logger.ERROR()
 
-            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
+            msg = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
 
             self.logger.INFO(
-                f"{order_type} ORDER For {symbol} - TRADER: {self.user['Name']}", True)
+                f"PUSHING {side} ORDER For {symbol} - TRADER: {self.user['Name']}")
 
-        elif order_type == "SELL" or order_type == "SELL_TO_OPEN":
+        # IF CLOSING A POSITION
+        elif direction == "CLOSE POSITION":
 
             position = self.open_positions.find_one(
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
 
             obj["Qty"] = position["Qty"]
 
-            obj["Buy_Price"] = position["Buy_Price"]
+            obj["Entry_Price"] = position["Entry_Price"]
 
-            obj["Buy_Date"] = position["Date"]
+            obj["Entry_Date"] = position["Entry_Date"]
 
-            obj["Sell_Price"] = price
+            obj["Exit_Price"] = price
 
-            obj["Sell_Date"] = getDatetime()
+            obj["Exit_Date"] = getDatetime()
 
-            sell_price = round(price * position["Qty"], 2)
+            exit_price = round(price * position["Qty"], 2)
 
-            buy_price = round(
-                position["Buy_Price"] * position["Qty"], 2)
+            entry_price = round(
+                position["Entry_Price"] * position["Qty"], 2)
 
-            if buy_price != 0:
+            if entry_price != 0:
 
                 rov = round(
-                    ((sell_price / buy_price) - 1) * 100, 2)
+                    ((entry_price / exit_price) - 1) * 100, 2)
 
             else:
 
                 rov = 0
 
-            if rov > 0 or sell_price - buy_price > 0:
-
-                sold_for = "GAIN"
-
-            elif rov < 0 or sell_price - buy_price < 0:
-
-                sold_for = "LOSS"
-
-            else:
-
-                sold_for = "NONE"
-
             obj["ROV"] = rov
 
-            msg = f"____ \n Side: {order_type} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Buy Price: ${position['Buy_Price']} \n Buy Date: {position['Date']} \n Sell Price: ${price} \n Sell Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n ROV: {rov}% \n Sold For: {sold_for} \n Trader: {self.user['Name']} \n"
+            msg = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Entry Price: ${position['Entry_Price']} \n Entry Date: {position['Entry_Date']} \n Exit Price: ${price} \n Exit Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n ROV: {rov}% \n Trader: {self.user['Name']} \n"
 
             # ADD TO CLOSED POSITIONS
             try:
@@ -434,7 +461,7 @@ class LiveTrader(Tasks, OrderBuilder):
                 self.logger.ERROR()
 
             self.logger.INFO(
-                f"{order_type} ORDER For {symbol} - TRADER: {self.user['Name']}", True)
+                f"PUSHING {side} ORDER For {symbol} - TRADER: {self.user['Name']}")
 
         # REMOVE FROM QUEUE
         self.queue.delete_one({"Trader": self.user["Name"], "Symbol": symbol,

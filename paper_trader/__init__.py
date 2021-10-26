@@ -88,23 +88,23 @@ class PaperTrader():
 
                 price = float(resp[symbol][BUY_PRICE])
 
-                sell_price = round(price * qty, 2)
+                exit_price = round(price * qty, 2)
 
-                buy_price = round(entry_price * qty, 2)
+                entry_price = round(entry_price * qty, 2)
 
                 rov = round(
-                    ((sell_price / buy_price) - 1) * 100, 2)
+                    ((exit_price / entry_price) - 1) * 100, 2)
 
             elif position_type == "SHORT":
 
                 price = float(resp[symbol][SELL_PRICE])
 
-                sell_price = round(price * qty, 2)
+                exit_price = round(price * qty, 2)
 
-                buy_price = round(entry_price * qty, 2)
+                entry_price = round(entry_price * qty, 2)
 
                 rov = round(
-                    ((buy_price / sell_price) - 1) * 100, 2)
+                    ((entry_price / exit_price) - 1) * 100, 2)
 
             else:
 

@@ -16,6 +16,76 @@ class Tasks:
 
         self.isAlive = True
 
+    @exception_handler
+    def checkOCOtriggers(self):
+        """ Checks OCO triggers (stop loss/ take profit) to see if either one has filled. If so, then close position in mongo like normal.
+
+        """
+
+        open_positions = self.open_positions.find(
+            {"Trader": self.user["Name"], "Order_Type": "OCO"})
+
+        for position in open_positions:
+
+            childOrderStrategies = position["childOrderStrategies"]
+
+            for order_id in childOrderStrategies.keys():
+
+                spec_order = self.tdameritrade.getSpecificOrder(order_id)
+
+                new_status = spec_order["status"]
+
+                if new_status == "FILLED":
+
+                    self.pushOrder(position, spec_order)
+
+                elif new_status == "CANCELED" or new_status == "REJECTED":
+
+                    other = {
+                        "Symbol": position["Symbol"],
+                        "Order_Type": position["Order_Type"],
+                        "Order_Status": new_status,
+                        "Strategy": position["Strategy"],
+                        "Trader": self.user["Name"],
+                        "Date": getDatetime(),
+                        "Account_ID": self.account_id
+                    }
+
+                    self.rejected.insert_one(
+                        other) if new_status == "REJECTED" else self.canceled.insert_one(other)
+
+                    self.logger.INFO(
+                        f"{new_status.upper()} ORDER For {position['Symbol']} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}")
+
+                else:
+
+                    self.open_positions.update_one({"Trader": self.user["Name"], "Symbol": position["Symbol"], "Strategy": position["Strategy"]}, {
+                        "$set": {f"childOrderStrategies.{order_id}.Order_Status": new_status}})
+
+    @exception_handler
+    def extractOCOchildren(self, spec_order):
+        """This method extracts oco children order ids and then sends it to be stored in mongo open positions. 
+        Data will be used by checkOCOtriggers with order ids to see if stop loss or take profit has been triggered.
+
+        """
+
+        oco_children = {
+            "childOrderStrategies": {}
+        }
+
+        childOrderStrategies = spec_order["childOrderStrategies"][0]["childOrderStrategies"]
+
+        for child in childOrderStrategies:
+
+            oco_children["childOrderStrategies"][child["orderId"]] = {
+                "Side": child["orderLegCollection"][0]["instruction"],
+                "Exit_Price": child["stopPrice"] if "stopPrice" in child else child["price"],
+                "Exit_Type": "STOP LOSS" if "stopPrice" in child else "TAKE PROFIT",
+                "Order_Status": child["status"]
+            }
+
+        return oco_children
+
     @ exception_handler
     def addNewStrategy(self, strategy, asset_type):
         """ METHOD UPDATES STRATEGIES OBJECT IN MONGODB WITH NEW STRATEGIES.
@@ -53,9 +123,10 @@ class Tasks:
             try:
 
                 # RUN TASKS ####################################################
-                pass
+                self.checkOCOtriggers()
 
                 ##############################################################
+
             except KeyError:
 
                 self.isAlive = False
