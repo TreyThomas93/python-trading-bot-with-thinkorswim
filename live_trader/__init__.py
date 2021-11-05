@@ -750,7 +750,6 @@ class LiveTrader(Tasks):
             if symbol not in forbidden_symbols and self.account_id == account_id:
 
                 #POST TO DISCORD
-
                 discord_data = {"content": ":rocket: ComfyBOT likes "+symbol+" | "+side+" | "+data["Pre_Symbol"]+" :rocket:"}
                 response = requests.post(DISCORD_URI, json=discord_data)
 

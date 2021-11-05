@@ -230,7 +230,7 @@ class Tasks:
 
         startTime = "9:45"  #THIS WILL START TRADING AT 9:45AM
 
-        endTime = "15:50"  #THIS WILL STOP TRADING AT 3:50PM
+        endTime = "15:45"  #THIS WILL STOP TRADING AT 3:50PM
 
         return tm < startTime or tm > endTime or day in weekends
 

@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="26c681c3-26e8-461e-a5ac-5a4dd2caee31" name="Changes" comment="Updated order">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/live_trader/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/live_trader/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tasks/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/tasks/__init__.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
