@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, date, time, timedelta
 import pytz
 from pytz import timezone
 import time
@@ -37,11 +37,11 @@ class Tasks:
     @exception_handler
     def getDatetimeSplit(self):
 
-        dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
+        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
         dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-        dt = datetime.datetime.strftime(dt_eastern, "%Y-%m-%d %H:00")
+        dt = datetime.strftime(dt_eastern, "%Y-%m-%d %H:00")
 
         dt_only = dt.split(" ")[0].strip()
 
@@ -116,16 +116,16 @@ class Tasks:
         queue_orders = self.queue.find(
             {"Trader": self.user["Name"], "Account_ID": self.account_id})
 
-        dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
+        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
         dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
         dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-        two_hours_ago = datetime.datetime.strptime(datetime.datetime.strftime(
-            dt_eastern - datetime.timedelta(hours=2), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        two_hours_ago = datetime.strptime(datetime.strftime(
+            dt_eastern - timedelta(hours=2), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
-        ten_minutes_ago = datetime.datetime.strptime(datetime.datetime.strftime(
-            dt_eastern - datetime.timedelta(minutes=10), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        ten_minutes_ago = datetime.strptime(datetime.strftime(
+            dt_eastern - timedelta(minutes=10), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
         for order in queue_orders:
 
@@ -186,7 +186,7 @@ class Tasks:
         open_positions = self.open_positions.find(
             {"Trader": self.user["Name"], "Asset_Type": "OPTION"})
 
-        dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
+        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
         dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
@@ -216,25 +216,23 @@ class Tasks:
         """ METHOD STOPS THE TRADING BOT BETWEEN THE HOURS OF 4:30PM AND 9:30AM EST. ONCE THIS FUNCTION IS FALSE, IT WILL TRADE.
         """
 
-        tz = timezone('EST')
+        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
-        tm = datetime.datetime.now(tz)
+        dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-        today = datetime.datetime(tm.year,tm.month,tm.day,tzinfo=tz)
+        today = dt_eastern.strftime("%d")
 
-        day = today.weekday()
+        day = dt_eastern.strftime("%a")
 
-        tm = tm.time()
+        tm = dt_eastern.strftime("%H:%M")
 
-        weekends = [5,6]
+        weekends = ["Sat","Sun"]
 
-        startTime = datetime.time(hour=9,minute=45)  #THIS WILL START TRADING AT 9:45AM
+        startTime = "9:45"  #THIS WILL START TRADING AT 9:45AM
 
-        endTime = datetime.time(hour=15, minute=50)  #THIS WILL STOP TRADING AT 3:50PM
+        endTime = "15:50"  #THIS WILL STOP TRADING AT 3:50PM
 
         return tm < startTime or tm > endTime or day in weekends
-
-
 
 
     @ exception_handler
@@ -274,7 +272,7 @@ class Tasks:
             OBJECTIVE IS TO FREE UP UNNECESSARY SERVER USAGE
             """
 
-            dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
+            dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
             dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
@@ -301,7 +299,7 @@ class Tasks:
 
                 self.updateAccountBalance()
 
-                dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
+                dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
                 dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
