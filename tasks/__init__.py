@@ -1,6 +1,6 @@
-
-from datetime import datetime, timedelta
+import datetime
 import pytz
+from pytz import timezone
 import time
 from assets.exception_handler import exception_handler
 from assets.current_datetime import getDatetime
@@ -37,11 +37,11 @@ class Tasks:
     @exception_handler
     def getDatetimeSplit(self):
 
-        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
+        dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
         dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-        dt = datetime.strftime(dt_eastern, "%Y-%m-%d %H:00")
+        dt = datetime.datetime.strftime(dt_eastern, "%Y-%m-%d %H:00")
 
         dt_only = dt.split(" ")[0].strip()
 
@@ -116,16 +116,16 @@ class Tasks:
         queue_orders = self.queue.find(
             {"Trader": self.user["Name"], "Account_ID": self.account_id})
 
-        dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
+        dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
         dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
         dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
-        two_hours_ago = datetime.strptime(datetime.strftime(
-            dt_eastern - timedelta(hours=2), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        two_hours_ago = datetime.datetime.strptime(datetime.datetime.strftime(
+            dt_eastern - datetime.timedelta(hours=2), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
-        ten_minutes_ago = datetime.strptime(datetime.strftime(
-            dt_eastern - timedelta(minutes=10), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        twenty_minutes_ago = datetime.datetime.strptime(datetime.datetime.strftime(
+            dt_eastern - datetime.timedelta(minutes=20), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
         for order in queue_orders:
 
@@ -137,7 +137,7 @@ class Tasks:
 
             forbidden = ["REJECTED", "CANCELED", "FILLED"]
 
-            if ten_minutes_ago > order_date and (order_type == "BUY" or order_type == "BUY_TO_OPEN") and id != None and order["Order_Status"] not in forbidden:
+            if twenty_minutes_ago > order_date and (order_type == "BUY" or order_type == "BUY_TO_OPEN") and id != None and order["Order_Status"] not in forbidden:
 
                 # FIRST CANCEL ORDER
                 resp = self.tdameritrade.cancelOrder(id)
@@ -163,7 +163,7 @@ class Tasks:
                         f"CANCELED ORDER FOR {order['Symbol']} - TRADER: {self.user['Name']}", True)
 
             # IF QUEUE ORDER DATE GREATER THAN 10 MINUTES OLD AND ORDER ID EQUALS NONE, SEND ALERT
-            if ten_minutes_ago > order_date and order["Order_ID"] == None and order["Account_ID"] == self.account_id:
+            if twenty_minutes_ago > order_date and order["Order_ID"] == None and order["Account_ID"] == self.account_id:
 
                 if order["Symbol"] not in self.no_ids_list:
 
@@ -179,26 +179,29 @@ class Tasks:
                     self.no_ids_list.remove(order["Symbol"])
 
     @exception_handler
-    def sellOptionsAtExpiration(self):
+    def sellOptionsAtEOD(self):
         """ METHOD SELLS OUT OPTIONS IF ONE DAY BEFORE EXPIRATION
         """
 
         open_positions = self.open_positions.find(
             {"Trader": self.user["Name"], "Asset_Type": "OPTION"})
 
-        dt = getDatetime()
+        dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
+
+        dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
+
+        tm = dt_eastern.strftime("%H:%M:%S")
+
+        end_of_day = "15:55"
 
         for position in open_positions:
 
-            day_before = (position["Exp_Date"] -
-                          timedelta(days=1)).strftime("%Y-%m-%d")
-
-            if day_before == dt.strftime("%Y-%m-%d"):
+            if tm == end_of_day:
 
                 trade_data = {
                     "Symbol": position["Symbol"],
                     "Pre_Symbol": position["Pre_Symbol"],
-                    "Side": "SELL_TO_CLOSE",
+                    "Side":"SELL_TO_CLOSE",
                     "Option_Type": position["Option_Type"],
                     "Strategy": position["Strategy"],
                     "Asset_Type": position["Asset_Type"],
@@ -206,6 +209,33 @@ class Tasks:
                 }
 
                 self.placeOrder(trade_data, position)
+
+
+    @exception_handler
+    def itisMarketHours(self):
+        """ METHOD STOPS THE TRADING BOT BETWEEN THE HOURS OF 4:30PM AND 9:30AM EST. ONCE THIS FUNCTION IS FALSE, IT WILL TRADE.
+        """
+
+        tz = timezone('EST')
+
+        tm = datetime.datetime.now(tz)
+
+        today = datetime.datetime(tm.year,tm.month,tm.day,tzinfo=tz)
+
+        day = today.weekday()
+
+        tm = tm.time()
+
+        weekends = [5,6]
+
+        startTime = datetime.time(hour=9,minute=45)  #THIS WILL START TRADING AT 9:45AM
+
+        endTime = datetime.time(hour=15, minute=50)  #THIS WILL STOP TRADING AT 3:50PM
+
+        return tm < startTime or tm > endTime or day in weekends
+
+
+
 
     @ exception_handler
     def updateStrategiesObject(self, strategy):
@@ -220,6 +250,8 @@ class Tasks:
             {"Name": self.user["Name"], f"Accounts.{self.account_id}.Strategies.{strategy}": {"$exists": False}}, {
                 "$set": {f"Accounts.{self.account_id}.Strategies.{strategy}": {"Position_Size": 200, "Active": True}}}
         )
+
+
 
     def runTasks(self):
         """ METHOD RUNS TASKS ON WHILE LOOP EVERY 5 - 60 SECONDS DEPENDING.
@@ -242,7 +274,7 @@ class Tasks:
             OBJECTIVE IS TO FREE UP UNNECESSARY SERVER USAGE
             """
 
-            dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
+            dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
             dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
@@ -269,7 +301,7 @@ class Tasks:
 
                 self.updateAccountBalance()
 
-                dt = datetime.now(tz=pytz.UTC).replace(microsecond=0)
+                dt = datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0)
 
                 dt_eastern = dt.astimezone(pytz.timezone('US/Eastern'))
 
@@ -288,7 +320,11 @@ class Tasks:
                     self.check_options = False
 
                 # IF 4:00PM EST, ADD BALANCE, PROFIT/LOSS TO HISTORY
-                if tm == "16:30":
+                day = dt_eastern.strftime("%a")
+
+                weekends = ["Sat", "Sun"]
+
+                if tm == "16:00":
 
                     if not self.midnight:
 

@@ -3,7 +3,20 @@ from tasks import Tasks
 from threading import Thread
 from assets.exception_handler import exception_handler
 from pprint import pprint
+from dotenv import load_dotenv
+import os
+import requests
 
+
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+load_dotenv(dotenv_path=f"{THIS_FOLDER}/.env")
+
+DISCORD_URI = os.getenv('DISCORD_URI')
+split_shares_pct = float(os.getenv('split_shares_pct'))
+stop_price_pct = float(os.getenv('stop_price_pct'))
+take_profit_pct = float(os.getenv('take_profit_pct'))
+stop_price_trail_pct = float(os.getenv('stop_price_trail_pct'))
 
 class LiveTrader(Tasks):
 
@@ -69,123 +82,109 @@ class LiveTrader(Tasks):
 
             asset_type = "EQUITY"
 
-################## Set your order_type: Standard, Trailing_Stop, OCO
-
-        order_type = "OCO"
-
-        if order_type == "Standard":
-
-            order = {
-                "orderType": "LIMIT",
-                "price": None,
-                "session": "SEAMLESS" if asset_type == "EQUITY" else "NORMAL",
-                "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
-                "orderStrategyType": "SINGLE",
-                "orderLegCollection": [
-                    {
-                        "instruction": side,
-                        "quantity": None,
-                        "instrument": {
-                            "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
-                            "assetType": asset_type,
-                        }
-                    }
-                ]
-            }
-
-
-
-        elif order_type == "Trailing_Stop":
-
-            order =   {
-                    "orderType": "Limit",
-                    "session": "Normal",
-                    "price": None,
-                    "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
-                    "orderStrategyType": "TRIGGER",
-                    "orderLegCollection": [
-                        {
-                            "instruction": side,
-                            "quantity": None,
-                            "instrument": {
-                                "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
-                                "assetType": asset_type
-                                          }
-                        }
-                    ],
-                    "childOrderStrategies": [
-                        {
-                            "session": "NORMAL",
-                            "orderType": "TRAILING_STOP",
-                            "stopPriceLinkBasis": "ASK",
-                            "stopPriceLinkType": "PERCENT",
-                            "stopPriceOffset": None,
-                            "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
-                            "orderStrategyType": "SINGLE",
-                            "orderLegCollection": [
-                                {
-                                    "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
-                                    "quantity": None,
-                                    "instrument": {
-                                        "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
-                                        "assetType": asset_type
-                                                  }
-                                }
-                                ]
-                        }
-                    ]
-                    }
-
-        elif order_type == "OCO":
-
-            order =   {
-                      "orderStrategyType": "TRIGGER",
-                      "session": "NORMAL",
-                      "duration": "GOOD_TILL_CANCEL",
-                      "orderType": "LIMIT",
-                      "price": None,
-                      "orderLegCollection": [{
-                                          "instruction": side,
-                                          "quantity": None,
-                                          "instrument": {
-                                                        "assetType": asset_type,
-                                                        "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"] }
-                                            }],
-                      "childOrderStrategies": [{
-                                          "orderStrategyType": "OCO",
-                                          "childOrderStrategies": [
-                                                                  {"orderStrategyType": "SINGLE",
-                                                                  "session": "NORMAL",
-                                                                  "duration": "GOOD_TILL_CANCEL",
-                                                                  "orderType": "LIMIT",
-                                                                  "price": None,
-                                                                  "orderLegCollection": [{
+        #Custom code for OCO orders
+        order_1 =   {
+                  "orderStrategyType": "TRIGGER",
+                  "session": "NORMAL",
+                  "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
+                  "orderType": "LIMIT",
+                  "price": None,
+                  "orderLegCollection": [{
+                                      "instruction": side,
+                                      "quantity": None,
+                                      "instrument": {
+                                                    "assetType": asset_type,
+                                                    "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"] }
+                                        }],
+                  "childOrderStrategies": [{
+                                      "orderStrategyType": "OCO",
+                                      "childOrderStrategies": [
+                                                              {"orderStrategyType": "SINGLE",
+                                                              "session": "NORMAL",
+                                                              "duration": "GOOD_TILL_CANCEL",
+                                                              "orderType": "LIMIT",
+                                                              "price": None,
+                                                              "orderLegCollection": [{
+                                                                                  "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
+                                                                                  "quantity": None,
+                                                                                  "instrument": {
+                                                                                                "assetType": asset_type,
+                                                                                                "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"], }}]},
+                                                              {"orderStrategyType": "SINGLE",
+                                                              "session": "NORMAL",
+                                                              "duration": "GOOD_TILL_CANCEL",
+                                                              "orderType": "STOP",
+                                                              "stopPrice": None,
+                                                              "orderLegCollection": [{
                                                                                       "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
                                                                                       "quantity": None,
                                                                                       "instrument": {
                                                                                                     "assetType": asset_type,
-                                                                                                    "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"], }}]},
-                                                                  {"orderStrategyType": "SINGLE",
-                                                                  "session": "NORMAL",
-                                                                  "duration": "GOOD_TILL_CANCEL",
-                                                                  "orderType": "STOP",
-                                                                  "stopPrice": None,
-                                                                  "orderLegCollection": [{
-                                                                                          "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
-                                                                                          "quantity": None,
-                                                                                          "instrument": {
-                                                                                                        "assetType": asset_type,
-                                                                                                        "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"], }
-                                                                                        }]
-                                                                  }
-                                                                  ]
-                                              }]
-                      }
+                                                                                                    "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"], }
+                                                                                    }]
+                                                              }
+                                                              ]
+                                          }]
+                  }
 
-        else:
+        order_2 = {
+                  "orderType": "LIMIT",
+                  "session": "NORMAL",
+                  "price": None,
+                  "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
+                  "orderStrategyType": "TRIGGER",
+                  "orderLegCollection": [
+                    {
+                      "instruction": side,
+                      "quantity": None,
+                      "instrument": {
+                        "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
+                        "assetType": asset_type
+                                    }
+                    }
+                  ],
+                  "childOrderStrategies": [
+                    {
+                      "session": "NORMAL",
+                      "orderType": "TRAILING_STOP",
+                      "stopPriceLinkBasis": "MARK",
+                      "stopPriceLinkType": "VALUE",
+                      "stopPriceOffset": None,
+                      "duration": "GOOD_TILL_CANCEL",
+                      "orderStrategyType": "SINGLE",
+                      "orderLegCollection": [
+                        {
+                          "instruction": "SELL" if asset_type == "EQUITY" else "SELL_TO_CLOSE",
+                          "quantity": None,
+                          "instrument": {
+                            "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
+                            "assetType": asset_type
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                  #/customer OCO order code
 
-            self.logger.WARNING(
-                __class__.__name__, f"{side} ORDER STOPPED: UNKNOWN ORDER_STATUS - {active_strategy} SHARES - {shares}")
+        #default order code commented out for now
+        # order = {
+        #     "orderType": "LIMIT",
+        #     "price": None,
+        #     "session": "SEAMLESS" if asset_type == "EQUITY" else "NORMAL",
+        #     "duration": "GOOD_TILL_CANCEL" if asset_type == "EQUITY" else "DAY",
+        #     "orderStrategyType": "SINGLE",
+        #     "orderLegCollection": [
+        #         {
+        #             "instruction": side,
+        #             "quantity": None,
+        #             "instrument": {
+        #                 "symbol": symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"],
+        #                 "assetType": asset_type,
+        #             }
+        #         }
+        #     ]
+        # }
 
         obj = {
             "Symbol": symbol,
@@ -209,10 +208,11 @@ class LiveTrader(Tasks):
 
             obj["Option_Type"] = trade_data["Option_Type"]
 
-            order["orderLegCollection"][0]["instrument"]["putCall"] = trade_data["Option_Type"]
-
+            order_1["orderLegCollection"][0]["instrument"]["putCall"] = trade_data["Option_Type"]
+            order_2["orderLegCollection"][0]["instrument"]["putCall"] = trade_data["Option_Type"]
 
         position_size = None
+
 
         if side == "BUY" or side == "BUY_TO_OPEN":
 
@@ -220,39 +220,28 @@ class LiveTrader(Tasks):
                 symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
 
             price = float(
-                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["askPrice"])
+                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["bidPrice"])
 
-            order["price"] = round(price, 2) if price >= 1 else round(price, 4)
+            order_1["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
-            if order_type == "OCO":
+            order_2["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
-###############SET YOUR STOP LOSS & TAKE PROFIT PERCENTAGES
-                stop_price = (price*0.89)
+            #Code for OCO orders
+            stop_price = (price*stop_price_pct)
 
-                take_profit_price = (price*1.25)
+            take_profit_price = (price*take_profit_pct)
 
-                if asset_type == "EQUITY":
+            stop_price_trail = (price*stop_price_trail_pct)
 
-                    order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price, 2) if price >= 1 else round(take_profit_price, 4)
+            order_1["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price, 2) if price >= 1 else round(take_profit_price, 2)
 
-                    order["childOrderStrategies"][0]["childOrderStrategies"][1]["stopPrice"] = round(stop_price, 2) if price >= 1 else round(stop_price, 4)
+            order_1["childOrderStrategies"][0]["childOrderStrategies"][1]["stopPrice"] = round(stop_price, 2) if price >= 1 else round(stop_price, 2)
 
+            order_2["childOrderStrategies"][0]["stopPriceOffset"] = round(stop_price_trail, 2) if price >= 1 else round(stop_price_trail, 2)
 
-                else:
-                    order["childOrderStrategies"][0]["childOrderStrategies"][0]["price"] = round(take_profit_price, 2) if price >= 1 else round(take_profit_price, 2)
-
-                    order["childOrderStrategies"][0]["childOrderStrategies"][1]["stopPrice"] = round(stop_price, 2) if price >= 1 else round(stop_price, 2)
-
-            elif order_type == "Trailing_Stop":
-
-#############SET YOUR TRAILING STOP PERCENTAGE
-                trail_stop = 10
-
-                order["childOrderStrategies"][0]["stopPriceOffset"] = round(trail_stop, 2) if price >= 1 else round(trail_stop, 2)
-
+            #/code for OCO orders
 
             # GET SHARES FOR PARTICULAR STRATEGY
-
             strategies = self.user["Accounts"][str(
                 self.account_id)]["Strategies"]
 
@@ -265,36 +254,28 @@ class LiveTrader(Tasks):
 
             position_size = int(strategies[strategy]["Position_Size"])
 
+            shares = int(position_size/price) if asset_type == "EQUITY" else int((position_size/price)/100)
+
+            order_1qty = int(shares*split_shares_pct)
+
+            order_2qty = int(shares - order_1qty)
+
             active_strategy = strategies[strategy]["Active"]
 
-            if asset_type == "EQUITY":
-
-                shares = int(position_size/price)
-
-            else:
-
-                shares = int((position_size/100)/price)
 
             if active_strategy and shares > 0:
 
-                order["orderLegCollection"][0]["quantity"] = shares
+                order_1["orderLegCollection"][0]["quantity"] = order_1qty
 
-            if order_type == "OCO":
+                order_2["orderLegCollection"][0]["quantity"] = order_2qty
 
-                if shares > 1:
+                #Custom OCO code
+                order_1["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = order_1qty
 
-                    order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = (shares-1)
+                order_1["childOrderStrategies"][0]["childOrderStrategies"][1]["orderLegCollection"][0]["quantity"] = order_1qty
 
-                else:
-
-                    order["childOrderStrategies"][0]["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = shares
-
-                order["childOrderStrategies"][0]["childOrderStrategies"][1]["orderLegCollection"][0]["quantity"] = shares
-
-
-            elif order_type == "Trailing_Stop":
-
-                order["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = shares
+                order_2["childOrderStrategies"][0]["orderLegCollection"][0]["quantity"] = order_2qty
+                #End Custom OCO code
 
                 obj["Qty"] = shares
 
@@ -311,11 +292,9 @@ class LiveTrader(Tasks):
 
         elif side == "SELL" or side == "SELL_TO_CLOSE":
 
-            resp = self.tdameritrade.getQuote(
-                symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"])
+            resp = self.tdameritrade.getQuote(symbol)
 
-            price = float(
-                resp[symbol if asset_type == "EQUITY" else trade_data["Pre_Symbol"]]["askPrice"])
+            price = float(resp[symbol]["askPrice"])
 
             order["price"] = round(price, 2) if price >= 1 else round(price, 4)
 
@@ -330,46 +309,132 @@ class LiveTrader(Tasks):
             obj["Position_Size"] = position_data["Position_Size"]
 
             position_size = position_data["Position_Size"]
-
         # PLACE ORDER ################################################
 
-        resp = self.tdameritrade.placeTDAOrder(order)
 
-        status_code = resp.status_code
+        if side == "SELL" or side == "SELL_TO_CLOSE":
 
-        acceptable_status = [200, 201]
+            resp = self.tdameritrade.placeTDAOrder(order)
 
-        if status_code not in acceptable_status:
+            status_code = resp.status_code
 
-            other = {
-                "Symbol": symbol,
-                "Position_Size": position_size,
-                "Order_Type": side,
-                "Order_Status": "REJECTED",
-                "Strategy": strategy,
-                "Trader": self.user["Name"],
-                "Date": getDatetime(),
-                "Account_ID": self.account_id
-            }
+            acceptable_status = [200, 201]
 
-            self.logger.INFO(
-                f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp.json())['error']}", True)
+            if status_code not in acceptable_status:
 
-            self.other.insert_one(other)
+                other = {
+                    "Symbol": symbol,
+                    "Position_Size": position_size,
+                    "Order_Type": side,
+                    "Order_Status": "REJECTED",
+                    "Strategy": strategy,
+                    "Trader": self.user["Name"],
+                    "Date": getDatetime(),
+                    "Account_ID": self.account_id
+                }
+
+                self.logger.INFO(
+                    f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp.json())['error']}", True)
+
+                self.other.insert_one(other)
+
+                return
+
+            # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
+            obj["Order_ID"] = int(
+                (resp.headers["Location"]).split("/")[-1].strip())
+
+            obj["Order_Status"] = "QUEUED"
+
+            self.queueOrder(obj)
+
+            response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
+
+            self.logger.INFO(response_msg)
+
+        else:
+
+            #place first order
+            resp_1 = self.tdameritrade.placeTDAOrder(order_1)
+
+            status_code = resp_1.status_code
+
+            acceptable_status = [200, 201]
+
+            if status_code not in acceptable_status:
+
+                other = {
+                    "Symbol": symbol,
+                    "Position_Size": position_size,
+                    "Order_Type": side,
+                    "Order_Status": "REJECTED",
+                    "Strategy": strategy,
+                    "Trader": self.user["Name"],
+                    "Date": getDatetime(),
+                    "Account_ID": self.account_id
+                }
+
+                self.logger.INFO(
+                    f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp_1.json())['error']}", True)
+
+                self.other.insert_one(other)
+
+                return
+
+            # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
+            obj["Order_ID"] = int(
+                (resp_1.headers["Location"]).split("/")[-1].strip())
+
+            obj["Order_Status"] = "QUEUED"
+
+            self.queueOrder(obj)
+
+            response_msg = f"{side} ORDER RESPONSE: {resp_1.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
+
+            self.logger.INFO(response_msg)
+
+            #place 2nd order
+            resp_2 = self.tdameritrade.placeTDAOrder(order_2)
 
             return
 
-        # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
-        obj["Order_ID"] = int(
-            (resp.headers["Location"]).split("/")[-1].strip())
+            status_code = resp_2.status_code
 
-        obj["Order_Status"] = "QUEUED"
+            acceptable_status = [200, 201]
 
-        self.queueOrder(obj)
+            if status_code not in acceptable_status:
 
-        response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
+                other = {
+                    "Symbol": symbol,
+                    "Position_Size": position_size,
+                    "Order_Type": side,
+                    "Order_Status": "REJECTED",
+                    "Strategy": strategy,
+                    "Trader": self.user["Name"],
+                    "Date": getDatetime(),
+                    "Account_ID": self.account_id
+                }
 
-        self.logger.INFO(response_msg)
+                self.logger.INFO(
+                    f"{symbol} REJECTED For {self.user['Name']} - REASON: {(resp_2.json())['error']}", True)
+
+                self.other.insert_one(other)
+
+                return
+
+            # # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
+            # obj["Order_ID"] = int(
+            #     (resp_2.headers["Location"]).split("/")[-1].strip())
+
+            # obj["Order_Status"] = "QUEUED"
+
+            # self.queueOrder(obj)
+
+            # response_msg = f"{side} ORDER RESPONSE: {resp_2.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {self.account_id}"
+
+            # self.logger.INFO(response_msg)
+
+
 
     # STEP TWO
     @exception_handler
@@ -435,7 +500,7 @@ class LiveTrader(Tasks):
 
                     # REMOVE FROM QUEUE
                     self.queue.delete_one({"Trader": self.user["Name"], "Symbol": queue_order["Symbol"],
-                                           "Strategy": queue_order["Strategy"], "Account_ID": self.account_id})
+                                          "Strategy": queue_order["Strategy"], "Account_ID": self.account_id})
 
                     other = {
                         "Symbol": queue_order["Symbol"],
@@ -530,7 +595,7 @@ class LiveTrader(Tasks):
             # ADD TO OPEN POSITIONS
             try:
 
-                self.open_positions.insert_one(obj)
+                self.closed_positions.insert_one(obj)
 
             except writeConcernError:
 
@@ -646,7 +711,7 @@ class LiveTrader(Tasks):
 
         # REMOVE FROM QUEUE
         self.queue.delete_one({"Trader": self.user["Name"], "Symbol": symbol,
-                               "Strategy": strategy, "Account_ID": self.account_id})
+                              "Strategy": strategy, "Account_ID": self.account_id})
 
         self.push.send(msg)
 
@@ -681,6 +746,13 @@ class LiveTrader(Tasks):
 
             # IF SYMBOL NOT FORBIDDEN AND ACCOUNT TYPE (PRIMARY, SECONDARY) IS EQUAL TO THE ACCOUNT TYPE ASSOCIATED WITH THE TDAMERITRADE ACCOUNT TYPE
             if symbol not in forbidden_symbols and self.account_id == account_id:
+
+                #POST TO DISCORD
+
+                discord_data = {"content": ":rocket: ComfyBOT likes "+symbol+" | "+side+" | "+data["Pre_Symbol"]+" :rocket:"}
+                response = requests.post(DISCORD_URI, json=discord_data)
+
+                #/DISCORD POST
 
                 # CHECK OPEN POSITIONS AND QUEUE
                 open_position = self.open_positions.find_one(
