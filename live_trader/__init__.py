@@ -727,6 +727,8 @@ class LiveTrader(Tasks):
         # UPDATE ALL ORDER STATUS'S
         self.updateStatus()
 
+        if self.itisMarketHours(): return
+
         # UPDATE USER ATTRIBUTE
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 

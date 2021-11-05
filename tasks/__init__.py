@@ -124,8 +124,8 @@ class Tasks:
         two_hours_ago = datetime.datetime.strptime(datetime.datetime.strftime(
             dt_eastern - datetime.timedelta(hours=2), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
-        twenty_minutes_ago = datetime.datetime.strptime(datetime.datetime.strftime(
-            dt_eastern - datetime.timedelta(minutes=20), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        ten_minutes_ago = datetime.datetime.strptime(datetime.datetime.strftime(
+            dt_eastern - datetime.timedelta(minutes=10), "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
         for order in queue_orders:
 
@@ -137,7 +137,7 @@ class Tasks:
 
             forbidden = ["REJECTED", "CANCELED", "FILLED"]
 
-            if twenty_minutes_ago > order_date and (order_type == "BUY" or order_type == "BUY_TO_OPEN") and id != None and order["Order_Status"] not in forbidden:
+            if ten_minutes_ago > order_date and (order_type == "BUY" or order_type == "BUY_TO_OPEN") and id != None and order["Order_Status"] not in forbidden:
 
                 # FIRST CANCEL ORDER
                 resp = self.tdameritrade.cancelOrder(id)
@@ -163,7 +163,7 @@ class Tasks:
                         f"CANCELED ORDER FOR {order['Symbol']} - TRADER: {self.user['Name']}", True)
 
             # IF QUEUE ORDER DATE GREATER THAN 10 MINUTES OLD AND ORDER ID EQUALS NONE, SEND ALERT
-            if twenty_minutes_ago > order_date and order["Order_ID"] == None and order["Account_ID"] == self.account_id:
+            if ten_minutes_ago > order_date and order["Order_ID"] == None and order["Account_ID"] == self.account_id:
 
                 if order["Symbol"] not in self.no_ids_list:
 
