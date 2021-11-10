@@ -103,16 +103,16 @@ class Main:
                     if account_id not in self.traders and account_id not in self.not_connected:
 
                         push_notification = PushNotification(
-                            user["deviceID"])
+                            user["deviceID"], self.logger)
 
                         tdameritrade = TDAmeritrade(
-                            self.mongo, user, account_id, push_notification)
+                            self.mongo, user, account_id, self.logger, push_notification)
 
                         connected = tdameritrade.initialConnect()
 
                         if connected:
 
-                            obj = LiveTrader(user, self.mongo, push_notification, int(
+                            obj = LiveTrader(user, self.mongo, push_notification, self.logger, int(
                                 account_id), tdameritrade)
 
                             self.traders[account_id] = obj
