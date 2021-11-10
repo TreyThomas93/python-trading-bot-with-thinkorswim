@@ -127,9 +127,9 @@ class OrderBuilder:
 
             if strategy_object["Active"] and shares > 0:
 
-                self.order["orderLegCollection"][0]["quantity"] = 1
+                self.order["orderLegCollection"][0]["quantity"] = shares
 
-                self.obj["Qty"] = 1
+                self.obj["Qty"] = shares
 
                 self.obj["Position_Size"] = position_size
 
@@ -153,9 +153,9 @@ class OrderBuilder:
 
             self.obj["Entry_Date"] = trade_data["Entry_Date"]
 
-            self.obj["Exit_Price"] = trade_data["Exit_Price"]
+            self.obj["Exit_Price"] = price
 
-            self.obj["Exit_Date"] = trade_data["Exit_Date"]
+            self.obj["Exit_Date"] = getDatetime()
 
             self.obj["Qty"] = trade_data["Qty"]
 

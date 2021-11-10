@@ -204,7 +204,7 @@ class Gmail:
 
                             break
 
-                    self.logger.info(f"New Email: {payload}")
+                    self.logger.info(f"New Email: {payload}", extra={'log': False})
 
             except IndexError:
 

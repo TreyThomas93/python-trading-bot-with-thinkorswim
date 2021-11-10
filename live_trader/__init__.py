@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 from pymongo.errors import WriteError, WriteConcernError
+import traceback
+from pprint import pprint
 
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
@@ -294,13 +296,13 @@ class LiveTrader(Tasks, OrderBuilder):
 
             obj["Entry_Price"] = price
 
-            obj["Date"] = getDatetime()
+            obj["Entry_Date"] = getDatetime()
 
             collection_insert = self.open_positions.insert_one
 
             message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
 
-        elif direction == "CLOSED POSITION":
+        elif direction == "CLOSE POSITION":
 
             position = self.open_positions.find_one(
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
@@ -320,18 +322,29 @@ class LiveTrader(Tasks, OrderBuilder):
             entry_price = round(
                 position["Entry_Price"] * position["Qty"], 2)
 
-            if entry_price != 0:
+            collection_insert = self.closed_positions.insert_one
 
-                rov = round(
-                    ((entry_price / exit_price) - 1) * 100, 2)
+            message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Entry Price: ${position['Entry_Price']} \n Entry Date: {position['Entry_Date']} \n Exit Price: ${price} \n Exit Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n"
 
-            else:
+            # REMOVE FROM OPEN POSITIONS
+            is_removed = self.open_positions.delete_one(
+                {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
 
-                rov = 0
+            try:
 
-            obj["ROV"] = rov
+                if int(is_removed.deleted_count) == 0:
 
-            message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Entry Price: ${position['Entry_Price']} \n Entry Date: {position['Entry_Date']} \n Exit Price: ${price} \n Exit Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n ROV: {rov}% \n Trader: {self.user['Name']} \n"
+                    self.logger.error(
+                        f"INITIAL FAIL OF DELETING OPEN POSITION FOR SYMBOL {symbol} - {self.user['Name']} -  {modifiedAccountID(self.account_id)}")
+
+                    self.open_positions.delete_one(
+                        {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
+
+            except Exception:
+
+                msg = f"{self.user['Name']} - {modifiedAccountID(self.account_id)} - {traceback.format_exc()}"
+
+                self.logger.error(msg)
 
         # PUSH OBJECT TO MONGO. IF WRITE ERROR THEN ONE RETRY WILL OCCUR. IF YOU SEE THIS ERROR, THEN YOU MUST CONFIRM THE PUSH OCCURED.
         try:
@@ -352,9 +365,11 @@ class LiveTrader(Tasks, OrderBuilder):
 
             collection_insert(obj)
 
-        except Exception as e:
+        except Exception:
 
-            self.logger.error(e)
+            msg = f"{self.user['Name']} - {modifiedAccountID(self.account_id)} - {traceback.format_exc()}"
+
+            self.logger.error(msg)
 
         self.logger.info(
             f"PUSHING {side} ORDER For {symbol} - TRADER: {self.user['Name']}")
@@ -474,5 +489,5 @@ class LiveTrader(Tasks, OrderBuilder):
 
                 if direction != None:
 
-                    self.sendOrder(row if not open_position else row.update(
-                        open_position), strategy_object, direction)
+                    self.sendOrder(row if not open_position else {
+                                   **row, **open_position}, strategy_object, direction)

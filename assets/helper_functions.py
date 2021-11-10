@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=f"{path.parent}/config.env")
 TIMEZONE = os.getenv('TIMEZONE')
 
 
-def getTZDatetime():
+def getDatetime():
     """ function obtains the datetime based on timezone using the pytz library.
 
     Returns:
@@ -28,7 +28,7 @@ def getTZDatetime():
         "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
 
-def getDatetime():
+def getUTCDatetime():
     """ function obtains the utc datetime. will use this for all timestamps with the bot. GET FEEDBACK FROM DISCORD GROUP ON THIS BEFORE PUBLISH.
 
     Returns:
@@ -54,7 +54,7 @@ def selectSleep():
     OBJECTIVE IS TO FREE UP UNNECESSARY SERVER USAGE
     """
 
-    dt = getTZDatetime()
+    dt = getDatetime()
 
     day = dt.strftime("%a")
 

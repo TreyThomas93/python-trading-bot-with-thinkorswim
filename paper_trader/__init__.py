@@ -3,6 +3,7 @@ from assets.helper_functions import getDatetime
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+from pprint import pprint
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -58,7 +59,7 @@ class PaperTrader():
             # ADD TO OPEN POSITIONS
             self.open_positions.insert_one(obj)
 
-            msg = f"PAPER TRADER OPENED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}\n"
+            msg = f"PAPER TRADER OPENED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}"
 
             self.logger.info(msg)
 
@@ -132,7 +133,7 @@ class PaperTrader():
             self.open_positions.delete_one(
                 {"Symbol": symbol, "Strategy": strategy})
 
-            msg = f"PAPER TRADER CLOSED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}\n"
+            msg = f"PAPER TRADER CLOSED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}"
 
             self.logger.info(msg)
 
