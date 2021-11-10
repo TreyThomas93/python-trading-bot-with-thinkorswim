@@ -40,7 +40,7 @@ class Gmail:
 
         try:
 
-            self.logger.INFO("CONNECTING TO GMAIL...")
+            self.logger.info("CONNECTING TO GMAIL...", extra={'log': False})
 
             if os.path.exists(self.token_file):
 
@@ -69,7 +69,7 @@ class Gmail:
 
                 self.service = build('gmail', 'v1', credentials=self.creds)
 
-                self.logger.INFO("CONNECTED TO GMAIL!\n")
+                self.logger.info("CONNECTED TO GMAIL!\n", extra={'log': False})
 
                 return True
 
@@ -79,7 +79,8 @@ class Gmail:
 
         except Exception as e:
 
-            self.logger.CRITICAL(f"FAILED TO CONNECT TO GMAIL! - {e}\n")
+            self.logger.error(
+                f"FAILED TO CONNECT TO GMAIL! - {e}\n", extra={'log': False})
 
             return False
 
@@ -193,17 +194,17 @@ class Gmail:
 
                                     else:
 
-                                        self.logger.WARNING(__class__.__name__,
-                                                            f"ILLOGICAL MATCH - SIDE: {side.upper().strip()} / ASSET TYPE: {obj['Asset_Type']}")
+                                        self.logger.warning(
+                                            f"{__class__.__name__} - ILLOGICAL MATCH - SIDE: {side.upper().strip()} / ASSET TYPE: {obj['Asset_Type']}")
 
                                 else:
 
-                                    self.logger.WARNING(__class__.__name__,
-                                                        f"MISSING FIELDS FOR STRATEGY {strategy}")
+                                    self.logger.warning(
+                                        f"{__class__.__name__} - MISSING FIELDS FOR STRATEGY {strategy}")
 
                             break
 
-                    self.logger.INFO(f"NEW EMAIL: {payload}")
+                    self.logger.info(f"NEW EMAIL: {payload}")
 
             except IndexError:
 
@@ -211,12 +212,12 @@ class Gmail:
 
             except ValueError:
 
-                self.logger.WARNING(__class__.__name__,
-                                    f"EMAIL FORMAT ERROR: {payload}")
+                self.logger.warning(
+                    f"{__class__.__name__} - EMAIL FORMAT ERROR: {payload}")
 
-            except Exception:
+            except Exception as e:
 
-                self.logger.ERROR()
+                self.logger.error(f"{__class__.__name__} - {e}")
 
         return trade_data
 
@@ -252,9 +253,9 @@ class Gmail:
                     self.service.users().messages().trash(
                         userId='me', id=message["id"]).execute()
 
-        except Exception:
+        except Exception as e:
 
-            self.logger.ERROR()
+            self.logger.error(f"{__class__.__name__} - {e}")
 
         finally:
 

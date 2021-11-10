@@ -54,7 +54,7 @@ class Tasks:
                     self.rejected.insert_one(
                         other) if new_status == "REJECTED" else self.canceled.insert_one(other)
 
-                    self.logger.INFO(
+                    self.logger.info(
                         f"{new_status.upper()} ORDER For {position['Symbol']} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}")
 
                 else:
@@ -115,8 +115,8 @@ class Tasks:
         """ METHOD RUNS TASKS ON WHILE LOOP EVERY 5 - 60 SECONDS DEPENDING.
         """
 
-        self.logger.INFO(
-            f"STARTING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n")
+        self.logger.info(
+            f"STARTING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n", extra={'log': False})
 
         while self.isAlive:
 
@@ -131,14 +131,14 @@ class Tasks:
 
                 self.isAlive = False
 
-            except Exception:
+            except Exception as e:
 
-                self.logger.ERROR(
-                    f"ACCOUNT ID: {modifiedAccountID(self.account_id)} - TRADER: {self.user['Name']}")
+                self.logger.error(
+                    f"ACCOUNT ID: {modifiedAccountID(self.account_id)} - TRADER: {self.user['Name']} - {e}")
 
             finally:
 
                 time.sleep(selectSleep())
 
-        self.logger.INFO(
+        self.logger.warning(
             f"TASK STOPPED FOR ACCOUNT ID {modifiedAccountID(self.account_id)}")

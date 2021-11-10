@@ -13,6 +13,7 @@ load_dotenv(dotenv_path=f"{path.parent}/config.env")
 BUY_PRICE = os.getenv('BUY_PRICE')
 SELL_PRICE = os.getenv('SELL_PRICE')
 
+
 class PaperTrader():
 
     def __init__(self, mongo, logger):
@@ -41,7 +42,8 @@ class PaperTrader():
 
             resp = self.tdameritrade.getQuote(symbol)
 
-            price = float(resp[symbol][BUY_PRICE]) if position_type == "LONG" else float(resp[symbol][SELL_PRICE])
+            price = float(resp[symbol][BUY_PRICE]) if position_type == "LONG" else float(
+                resp[symbol][SELL_PRICE])
 
             obj = {
                 "Symbol": symbol,
@@ -58,11 +60,11 @@ class PaperTrader():
 
             msg = f"PAPER TRADER OPENED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}\n"
 
-            self.logger.INFO(msg)
+            self.logger.info(msg)
 
         except Exception as e:
 
-            self.logger.ERROR(f"{__class__.__name__} - openPosition - {e}")
+            self.logger.error(f"{__class__.__name__} - openPosition - {e}")
 
     def closePosition(self, data, position):
 
@@ -132,11 +134,11 @@ class PaperTrader():
 
             msg = f"PAPER TRADER CLOSED A POSITION - SYMBOL: {symbol} - STRATEGY: {strategy} - POSITION TYPE: {position_type} - ASSET TYPE: {asset_type}\n"
 
-            self.logger.INFO(msg)
+            self.logger.info(msg)
 
         except Exception as e:
 
-            self.logger.ERROR(f"{__class__.__name__} - closePosition - {e}")
+            self.logger.error(f"{__class__.__name__} - closePosition - {e}")
 
     def runTrader(self, symbols, tdameritrade):
 
@@ -208,4 +210,4 @@ class PaperTrader():
 
         except Exception as e:
 
-            self.logger.ERROR(f"{__class__.__name__} - runTrader - {e}")
+            self.logger.error(f"{__class__.__name__} - runTrader - {e}")

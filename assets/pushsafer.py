@@ -15,7 +15,7 @@ PUSH_API_KEY = os.getenv('PUSH_API_KEY')
 
 class PushNotification:
 
-    def __init__(self, device_id, logger, gmail):
+    def __init__(self, device_id, logger):
 
         self.url = 'https://www.pushsafer.com/api'
 
@@ -32,10 +32,6 @@ class PushNotification:
         }
 
         self.logger = logger
-
-        self.gmail = gmail
-
-        self.remaining_alert_sent = False
 
     def send(self, notification):
         """ METHOD SENDS PUSH NOTIFICATION TO USER
@@ -54,11 +50,11 @@ class PushNotification:
 
             if response.json()["success"] == 'message transmitted':
 
-                self.logger.INFO(f"PUSH NOTIFICATION SUCCESS: {notification}")
+                self.logger.info(f"PUSH NOTIFICATION SUCCESS: {notification}")
 
             else:
 
-                self.logger.INFO(f"PUSH NOTIFICATION FAILED: {notification}")
+                self.logger.warning(f"PUSH NOTIFICATION FAILED: {notification}")
 
         except ValueError:
 
@@ -68,6 +64,6 @@ class PushNotification:
 
             pass
 
-        except Exception:
+        except Exception as e:
 
-            self.logger.ERROR()
+            self.logger.error(e)

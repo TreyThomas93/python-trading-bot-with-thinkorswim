@@ -6,6 +6,8 @@ from live_trader.order_builder import OrderBuilder
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+from pymongo.errors import WriteError, WriteConcernError
+
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,15 +62,15 @@ class LiveTrader(Tasks, OrderBuilder):
 
         Tasks.__init__(self)
 
-        # If user wants to run tasks and there are more than two methods (outside of runTasks and addNewStrategy) found, indicating post production tasks were found.
+        # If user wants to run tasks
         if RUN_TASKS:
 
             Thread(target=self.runTasks, daemon=True).start()
 
         else:
 
-            self.logger.INFO(
-                f"NOT RUNNING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n")
+            self.logger.info(
+                f"NOT RUNNING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n", extra={'log': False})
 
     # STEP ONE
     @exception_handler
@@ -108,7 +110,7 @@ class LiveTrader(Tasks, OrderBuilder):
                 "Account_ID": self.account_id
             }
 
-            self.logger.INFO(
+            self.logger.info(
                 f"{symbol} REJECTED For {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)} - REASON: {(resp.json())['error']}")
 
             self.rejected.insert_one(other)
@@ -125,7 +127,7 @@ class LiveTrader(Tasks, OrderBuilder):
 
         response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}"
 
-        self.logger.INFO(response_msg)
+        self.logger.info(response_msg)
 
     # STEP TWO
     @exception_handler
@@ -163,40 +165,8 @@ class LiveTrader(Tasks, OrderBuilder):
             # ORDER ID NOT FOUND. ASSUME REMOVED
             if "error" in spec_order:
 
-                side = queue_order["Order_Type"]
-
-                position_type = queue_order["Position_Type"]
-
-                if side == "BUY":
-
-                    if position_type == "Long":
-
-                        direction = "OPEN"
-
-                    elif position_type == "Short":
-
-                        direction = "CLOSED"
-
-                elif side == "SELL":
-
-                    if position_type == "Long":
-
-                        direction = "CLOSED"
-
-                    elif position_type == "Short":
-
-                        direction = "OPEN"
-
-                elif side == "BUY_TO_OPEN" or side == "SELL_TO_OPEN":
-
-                    direction = "OPEN"
-
-                elif side == "BUY_TO_CLOSE" or side == "SELL_TO_CLOSE":
-
-                    direction = "CLOSED"
-
-                self.logger.WARNING(
-                    filename=__class__.__name__, warning=f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {direction} POSITIONS")
+                self.logger.warning(
+                    f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {queue_order['Direction']} POSITIONS")
 
                 custom = {
                     "price": queue_order["Buy_Price"],
@@ -245,7 +215,7 @@ class LiveTrader(Tasks, OrderBuilder):
                     self.rejected.insert_one(
                         other) if new_status == "REJECTED" else self.canceled.insert_one(other)
 
-                    self.logger.INFO(
+                    self.logger.info(
                         f"{new_status.upper()} ORDER For {queue_order['Symbol']} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}")
 
                 else:
@@ -293,6 +263,8 @@ class LiveTrader(Tasks, OrderBuilder):
 
         position_type = queue_order["Position_Type"]
 
+        direction = queue_order["Direction"]
+
         obj = {
             "Symbol": symbol,
             "Strategy": strategy,
@@ -312,43 +284,10 @@ class LiveTrader(Tasks, OrderBuilder):
 
             obj["Option_Type"] = queue_order["Option_Type"]
 
-        direction = None
+        collection_insert = None
 
-        if side == "BUY":
+        message_to_push = None
 
-            # PUSH TO OPEN POSITIONS
-            if position_type == "LONG":
-
-                direction = "OPEN POSITION"
-
-            # PUSH TO CLOSED POSITIONS
-            elif position_type == "SHORT":
-
-                direction = "CLOSE POSITION"
-
-        elif side == "SELL":
-
-            # PUSH TO CLOSED POSITIONS
-            if position_type == "LONG":
-
-                direction = "CLOSE POSITION"
-
-            # PUSH TO OPEN POSITIONS
-            elif position_type == "SHORT":
-
-                direction = "OPEN POSITION"
-
-        # PUSH TO CLOSED POSITIONS
-        elif side in ["BUY_TO_CLOSE", "SELL_TO_CLOSE"]:
-
-            direction = "CLOSE POSITION"
-
-        # PUSH TO OPEN POSITIONS
-        elif side in ["BUY_TO_OPEN", "SELL_TO_OPEN"]:
-
-            direction = "OPEN POSITION"
-
-        # IF OPENING A POSITION
         if direction == "OPEN POSITION":
 
             obj["Qty"] = shares
@@ -357,36 +296,11 @@ class LiveTrader(Tasks, OrderBuilder):
 
             obj["Date"] = getDatetime()
 
-            # ADD TO OPEN POSITIONS
-            try:
+            collection_insert = self.open_positions.insert_one
 
-                self.open_positions.insert_one(obj)
+            message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
 
-            except writeConcernError:
-
-                self.logger.ERROR(
-                    f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
-
-                self.open_positions.insert_one(obj)
-
-            except writeError:
-
-                self.logger.ERROR(
-                    f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
-
-                self.open_positions.insert_one(obj)
-
-            except Exception:
-
-                self.logger.ERROR()
-
-            msg = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
-
-            self.logger.INFO(
-                f"PUSHING {side} ORDER For {symbol} - TRADER: {self.user['Name']}")
-
-        # IF CLOSING A POSITION
-        elif direction == "CLOSE POSITION":
+        elif direction == "CLOSED POSITION":
 
             position = self.open_positions.find_one(
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
@@ -417,57 +331,39 @@ class LiveTrader(Tasks, OrderBuilder):
 
             obj["ROV"] = rov
 
-            msg = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Entry Price: ${position['Entry_Price']} \n Entry Date: {position['Entry_Date']} \n Exit Price: ${price} \n Exit Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n ROV: {rov}% \n Trader: {self.user['Name']} \n"
+            message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Entry Price: ${position['Entry_Price']} \n Entry Date: {position['Entry_Date']} \n Exit Price: ${price} \n Exit Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n ROV: {rov}% \n Trader: {self.user['Name']} \n"
 
-            # ADD TO CLOSED POSITIONS
-            try:
+        # PUSH OBJECT TO MONGO. IF WRITE ERROR THEN ONE RETRY WILL OCCUR. IF YOU SEE THIS ERROR, THEN YOU MUST CONFIRM THE PUSH OCCURED.
+        try:
 
-                self.closed_positions.insert_one(obj)
+            collection_insert(obj)
 
-            except writeConcernError:
+        except WriteConcernError as e:
 
-                self.logger.ERROR(
-                    f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeConcernError")
+            self.logger.error(
+                f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - {e}")
 
-                self.closed_positions.insert_one(obj)
+            collection_insert(obj)
 
-            except writeError:
+        except WriteError as e:
 
-                self.logger.ERROR(
-                    f"INITIAL FAIL OF INSERTING CLOSED POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - writeError")
+            self.logger.error(
+                f"INITIAL FAIL OF INSERTING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj} - {e}")
 
-                self.closed_positions.insert_one(obj)
+            collection_insert(obj)
 
-            except Exception:
+        except Exception as e:
 
-                self.logger.ERROR()
+            self.logger.error(e)
 
-            # REMOVE FROM OPEN POSITIONS
-            is_removed = self.open_positions.delete_one(
-                {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
-
-            try:
-
-                if int(is_removed.deleted_count) == 0:
-
-                    self.logger.ERROR(
-                        f"INITIAL FAIL OF DELETING OPEN POSITION FOR SYMBOL {symbol} - DATE/TIME: {getDatetime()} - DATA: {obj}")
-
-                    self.open_positions.delete_one(
-                        {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
-
-            except Exception:
-
-                self.logger.ERROR()
-
-            self.logger.INFO(
-                f"PUSHING {side} ORDER For {symbol} - TRADER: {self.user['Name']}")
+        self.logger.info(
+            f"PUSHING {side} ORDER For {symbol} - TRADER: {self.user['Name']}")
 
         # REMOVE FROM QUEUE
         self.queue.delete_one({"Trader": self.user["Name"], "Symbol": symbol,
                                "Strategy": strategy, "Account_ID": self.account_id})
 
-        self.push.send(msg)
+        self.push.send(message_to_push)
 
     # RUN TRADER
     @exception_handler

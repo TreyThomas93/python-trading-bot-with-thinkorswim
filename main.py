@@ -1,17 +1,21 @@
 # imports
 import time
-from live_trader import LiveTrader
-from paper_trader import PaperTrader
-from gmail import Gmail
-from mongo import MongoDB
 import os
-from assets.push_notification import PushNotification
-from assets.logger import Logger
-from tdameritrade import TDAmeritrade
-from assets.exception_handler import exception_handler
-from assets.helper_functions import selectSleep
 from dotenv import load_dotenv
 from pathlib import Path
+import logging
+
+from live_trader import LiveTrader
+from paper_trader import PaperTrader
+from tdameritrade import TDAmeritrade
+from gmail import Gmail
+from mongo import MongoDB
+
+from assets.pushsafer import PushNotification
+from assets.exception_handler import exception_handler
+from assets.helper_functions import selectSleep
+from assets.timeformatter import Formatter
+from assets.multifilehandler import MultiFileHandler
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -32,7 +36,25 @@ class Main:
         """
 
         # INSTANTIATE LOGGER
-        self.logger = Logger()
+        file_handler = MultiFileHandler(filename='logs/error.log', mode='a')
+
+        formatter = Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+        file_handler.setFormatter(formatter)
+
+        ch = logging.StreamHandler()
+
+        ch.setLevel(level="INFO")
+
+        ch.setFormatter(formatter)
+
+        self.logger = logging.getLogger(__name__)
+
+        self.logger.setLevel(level="INFO")
+
+        self.logger.addHandler(file_handler)
+
+        self.logger.addHandler(ch)
 
         # CONNECT TO MONGO
         self.mongo = MongoDB(self.logger)
@@ -54,11 +76,11 @@ class Main:
 
             self.not_connected = []
 
-            self.logger.INFO(
-                f"LIVE TRADER IS {'ACTIVE' if RUN_LIVE_TRADER else 'INACTIVE'}")
+            self.logger.info(
+                f"LIVE TRADER IS {'ACTIVE' if RUN_LIVE_TRADER else 'INACTIVE'}", extra={'log': False})
 
-            self.logger.INFO(
-                f"PAPER TRADER IS {'ACTIVE' if RUN_PAPER_TRADER else 'INACTIVE'}\n")
+            self.logger.info(
+                f"PAPER TRADER IS {'ACTIVE' if RUN_PAPER_TRADER else 'INACTIVE'}\n", extra={'log': False})
 
             return True
 
@@ -69,28 +91,28 @@ class Main:
         """ METHOD GETS ALL USERS ACCOUNTS FROM MONGO AND CREATES LIVE TRADER INSTANCES FOR THOSE ACCOUNTS.
             IF ACCOUNT INSTANCE ALREADY IN SELF.TRADERS DICT, THEN ACCOUNT INSTANCE WILL NOT BE CREATED AGAIN.
         """
-        try:
+       # GET ALL USERS ACCOUNTS
+        users = self.mongo.users.find({})
 
-            # GET ALL USERS ACCOUNTS
-            users = self.mongo.users.find({})
+        for user in users:
 
-            for user in users:
+            try:
 
                 for account_id in user["Accounts"].keys():
 
                     if account_id not in self.traders and account_id not in self.not_connected:
 
                         push_notification = PushNotification(
-                            user["deviceID"], self.logger, self.gmail)
+                            user["deviceID"])
 
                         tdameritrade = TDAmeritrade(
-                            self.mongo, user, account_id, self.logger, push_notification)
+                            self.mongo, user, account_id, push_notification)
 
                         connected = tdameritrade.initialConnect()
 
                         if connected:
 
-                            obj = LiveTrader(user, self.mongo, push_notification, self.logger, int(
+                            obj = LiveTrader(user, self.mongo, push_notification, int(
                                 account_id), tdameritrade)
 
                             self.traders[account_id] = obj
@@ -103,9 +125,9 @@ class Main:
 
                     self.accounts.append(account_id)
 
-        except Exception:
+            except Exception as e:
 
-            self.logger.ERROR()
+                logging.error(e)
 
     @exception_handler
     def run(self):

@@ -34,22 +34,22 @@ class TDAmeritrade:
     @exception_handler
     def initialConnect(self):
 
-        self.logger.INFO(
-            f"CONNECTING {self.user['Name']} TO TDAMERITRADE ({modifiedAccountID(self.account_id)})")
+        self.logger.info(
+            f"CONNECTING {self.user['Name']} TO TDAMERITRADE ({modifiedAccountID(self.account_id)})", extra={'log': False})
 
         isValid = self.checkTokenValidity()
 
         if isValid:
 
-            self.logger.INFO(
-                f"CONNECTED {self.user['Name']} TO TDAMERITRADE ({modifiedAccountID(self.account_id)})")
+            self.logger.info(
+                f"CONNECTED {self.user['Name']} TO TDAMERITRADE ({modifiedAccountID(self.account_id)})", extra={'log': False})
 
             return True
 
         else:
 
-            self.logger.CRITICAL(
-                f"FAILED TO CONNECT {self.user['Name']} TO TDAMERITRADE ({self.account_id})")
+            self.logger.error(
+                f"FAILED TO CONNECT {self.user['Name']} TO TDAMERITRADE ({self.account_id})", extra={'log': False})
 
             return False
 
@@ -60,7 +60,7 @@ class TDAmeritrade:
         Returns:
             [boolean]: TRUE IF SUCCESSFUL, FALSE IF ERROR
         """
-    
+
         # GET USER DATA
         user = self.users.find_one({"Name": self.user["Name"]})
 
@@ -104,7 +104,7 @@ class TDAmeritrade:
                 user["Accounts"][self.account_id], refresh_type="Refresh Token")
 
             if token:
-                
+
                 # ADD NEW TOKEN DATA TO USER DATA IN DB
                 self.users.update_one({"Name": self.user["Name"]}, {
                     "$set": {f"{self.account_id}.refresh_token": token['refresh_token'], f"{self.account_id}.refresh_exp_date": (datetime.now().replace(
@@ -148,14 +148,14 @@ class TDAmeritrade:
                              headers={
                                  'Content-Type': 'application/x-www-form-urlencoded'},
                              data=data)
-        
+
         if resp.status_code != 200:
 
             if not self.no_go_token_sent:
 
                 msg = f"ERROR WITH GETTING NEW TOKENS - {resp.json()} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {modifiedAccountID(self.account_id)}"
 
-                self.logger.ERROR(msg)
+                self.logger.error(msg)
 
                 self.push_notification.send(msg)
 
@@ -167,9 +167,9 @@ class TDAmeritrade:
 
                 self.terminate = True
 
-                msg = f"TDAMERITRADE INSTANCE TERMINATED - {resp.json()} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {modifiedAccountID(self.account_id)}"
+                msg = f"{__class__.__name__} - {self.user['Name']} - TDAMERITRADE INSTANCE TERMINATED - {resp.json()} - Refresh Type: {refresh_type} {modifiedAccountID(self.account_id)}"
 
-                self.logger.ERROR(msg)
+                self.logger.error(msg)
 
                 self.push_notification.send(msg)
 

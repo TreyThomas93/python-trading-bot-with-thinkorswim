@@ -49,7 +49,8 @@ class OrderBuilder:
             "Side": None,
             "Asset_Type": None,
             "Account_ID": self.account_id,
-            "Position_Type": None
+            "Position_Type": None,
+            "Direction": None
         }
 
     def standardOrder(self, trade_data, strategy_object, direction, OCOorder=False):
@@ -86,8 +87,11 @@ class OrderBuilder:
         self.obj["Position_Type"] = strategy_object["Position_Type"]
 
         self.obj["Order_Type"] = strategy_object["Order_Type"]
+
+        self.obj["Direction"] = direction
         ##############################################################
 
+        # IF OPTION
         if asset_type == "OPTION":
 
             self.obj["Pre_Symbol"] = trade_data["Pre_Symbol"]
@@ -113,7 +117,7 @@ class OrderBuilder:
         self.order["price"] = round(
             price, 2) if price >= 1 else round(price, 4)
 
-        # IF OPENING POSITION
+        # IF OPENING A POSITION
         if direction == "OPEN POSITION":
 
             position_size = int(strategy_object["Position_Size"])
@@ -135,8 +139,8 @@ class OrderBuilder:
 
             else:
 
-                self.logger.WARNING(
-                    __class__.__name__, f"{side} ORDER STOPPED: STRATEGY STATUS - {strategy_object['Active']} SHARES - {shares}")
+                self.logger.warning(
+                    f"{side} ORDER STOPPED: STRATEGY STATUS - {strategy_object['Active']} SHARES - {shares}")
 
                 return None, None
 
@@ -169,6 +173,8 @@ class OrderBuilder:
 
         side = trade_data["Side"]
 
+        # GET THE INVERSE OF THE SIDE
+        #####################################
         if side == "BUY_TO_OPEN":
 
             instruction = "SELL_TO_CLOSE"
@@ -184,6 +190,7 @@ class OrderBuilder:
         elif side == "SELL_TO_OPEN":
 
             instruction = "BUY_TO_CLOSE"
+        #####################################
 
         order["orderStrategyType"] = "TRIGGER"
 
