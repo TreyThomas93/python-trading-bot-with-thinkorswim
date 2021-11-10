@@ -49,6 +49,13 @@
   2. If another alert is triggered for AAPL with the strategy name of MyRSIStrategy, the bot will reject it because it's already an open position.
   3. Once the position is removed via a sell order, then AAPL with the strategy name of MyRSIStrategy can be bought again.
 
+- This bot is setup for both Standard orders and OCO orders.
+
+  1. Standard Orders - basic buy and sell order flow.
+  2. OCO orders - single entry price with two exit prices (Stop Loss/Take Profit)
+
+- For the OCO orders, the bot uses a task to check your TDA account to see if any OCO exits have triggered.
+
 ---
 
 ## <a name="getting-started"></a> Getting Started
@@ -60,23 +67,20 @@
 > [dev-packages]
 
 - pylint
-- bandit
-- pandas
-- tabulate
+- autopep8
 
 > [packages]
 
-- google-api-python-client
-- google-auth-httplib2
-- google-auth-oauthlib
-- python-dotenv
-- pymongo
-- dnspython
-- termcolor
-- colorama
-- requests
-- pytz
-- psutil
+- google-api-python-client = "\*"
+- google-auth-httplib2 = "\*"
+- google-auth-oauthlib = "\*"
+- python-dotenv = "\*"
+- pymongo = "\*"
+- dnspython = "\*"
+- requests = "\*"
+- pytz = "\*"
+- psutil = "\*"
+- certifi = "\*"
 
 > [venv]
 
@@ -93,21 +97,20 @@
 1. Create a strategy that you want to use in the bot.
 2. Create a scanner and name it using the format below:
 
-   - STRATEGY, SIDE, ACCOUNT ID #1, ACCOUNT ID #2... ECT.
+   - STRATEGY, SIDE
 
-   - Example: ![Scanner Name Format](assets/img/Scanner_Name_Format.PNG)
+   - Example: ![Scanner Name Format](https://tos-python-trading-bot.s3.us-east-2.amazonaws.com/img/Scanner_Name_Format.PNG)
 
    1. REVA is the strategy name example.
-   2. SELL is the side. Can be BUY, BUY_TO_OPEN, SELL, SELL_TO_CLOSE
-   3. ACCOUNT ID. ADD AS MANY ACCOUNT IDS THAT YOU WANT FROM HERE, FOLLOWED BY COMMAS. ALL OF THESE ACCOUNTS WILL RUN THIS PARTICULAR STRATEGY.
+   2. BUY is the side. Can be BUY, BUY_TO_OPEN, BUY_TO_CLOSE, SELL, SELL_TO_CLOSE, SELL_TO_OPEN
 
    ***
 
    - _**ATTENTION**_ - Your scanner names must have the same strategy names for the buy and sell scanners, or the bot will not be able to trade correctly.
    - Example:
 
-     - MyRSIStrategy, BUY, 123456789
-     - MyRSIStrategy, SELL, 123456789
+     - MyRSIStrategy, BUY
+     - MyRSIStrategy, SELL
 
 ---
 
@@ -115,13 +118,13 @@
 
    - This is how an entry strategy in the charts may look.
 
-   - ![Chart Strategy Example](assets/img/Chart_Strategy.PNG)
+   - ![Chart Strategy Example](https://tos-python-trading-bot.s3.us-east-2.amazonaws.com/img/Chart_Strategy.PNG)
 
    ***
 
    - This is how the scanner should look for the exact same entry strategy.
 
-   - ![Scanner Strategy Example](assets/img/Scanner_Strategy.PNG)
+   - ![Scanner Strategy Example](https://tos-python-trading-bot.s3.us-east-2.amazonaws.com/img/Scanner_Strategy.PNG)
 
    - The only thing that changed was that [1] was added to offset the scanner by one and to look at the previous candle.
 
@@ -129,13 +132,13 @@
 
 4. Set up the alert for the scanner. View images below:
 
-   - ![Create Alert Screen 1](assets/img/Create_Alert_Screen.PNG)
+   - ![Create Alert Screen 1](https://tos-python-trading-bot.s3.us-east-2.amazonaws.com/img/Create_Alert_Screen.PNG)
    - Set Event dropdown to "A symbol is added"
 
-   - ![Create Alert Screen 1](assets/img/Create_Alert_Screen2.PNG)
+   - ![Create Alert Screen 1](https://tos-python-trading-bot.s3.us-east-2.amazonaws.com/img/Create_Alert_Screen2.PNG)
    - Check the box that says "Send an e-mail to all specified e-mail addresses"
 
-   - ![Create Alert Screen 1](assets/img/Create_Alert_Screen3.PNG)
+   - ![Create Alert Screen 1](https://tos-python-trading-bot.s3.us-east-2.amazonaws.com/img/Create_Alert_Screen3.PNG)
    - Check the radio button thats says "A message for every change"
 
 ---
@@ -263,7 +266,7 @@
 - MongoDB Atlas -- Approx. $25 / month.
 - I currently use the M5 tier. You may be able to do the M2 tier. If you wont be using the web app then you don't need a higher level tier.
 
-![Mongo Tiers](assets/img/cluster-tier.png)
+![Mongo Tiers](https://tos-python-trading-bot.s3.us-east-2.amazonaws.com/img/cluster-tier.png)
 
 > NOTIFICATION SYSTEM
 
