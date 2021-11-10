@@ -1,5 +1,4 @@
 from pathlib import Path
-import colorama
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
@@ -11,8 +10,6 @@ THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 path = Path(THIS_FOLDER)
 
 load_dotenv(dotenv_path=f"{path.parent}/config.env")
-
-colorama.init()
 
 MONGO_URI = os.getenv('MONGO_URI')
 
