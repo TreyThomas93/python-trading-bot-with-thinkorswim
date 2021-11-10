@@ -204,7 +204,7 @@ class Gmail:
 
                             break
 
-                    self.logger.info(f"NEW EMAIL: {payload}")
+                    self.logger.info(f"New Email: {payload}")
 
             except IndexError:
 
@@ -213,7 +213,7 @@ class Gmail:
             except ValueError:
 
                 self.logger.warning(
-                    f"{__class__.__name__} - EMAIL FORMAT ERROR: {payload}")
+                    f"{__class__.__name__} - Email Format Issue: {payload}")
 
             except Exception as e:
 
