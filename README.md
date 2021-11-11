@@ -2,7 +2,7 @@
 
 ## Description
 
-- This automated trading bot utilizes TDAmeritrades API, Thinkorswim Alert System, Gmail API , and MongoDB to place trades, both Equity and Options, dynamically. _**This bot only works for LONG positions as of now**_
+- This automated trading bot utilizes TDAmeritrades API, Thinkorswim Alert System, Gmail API , and MongoDB to place trades, both Equity and Options, dynamically. _**This bot works for LONG and SHORT positions**_
 
 ## Table Of Contents
 
