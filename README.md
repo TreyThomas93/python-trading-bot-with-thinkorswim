@@ -276,27 +276,26 @@
 
 ---
 
-- Total : 16 files, 1838 codes, 283 comments, 911 blanks, all 3032 lines
+- Total : 15 files, 1768 codes, 271 comments, 849 blanks, all 2888 lines
 
-#### _Languages_
+## Languages
 
-| language | files |  code | comment | blank | total |
-| :------- | ----: | ----: | ------: | ----: | ----: |
-| Python   |    13 | 1,084 |     283 |   798 | 2,165 |
-| JSON     |     1 |   576 |       0 |     1 |   577 |
-| Markdown |     1 |   158 |       0 |   108 |   266 |
-| toml     |     1 |    20 |       0 |     4 |    24 |
+| language | files | code | comment | blank | total |
+| :------- | ----: | ---: | ------: | ----: | ----: |
+| Python   |    12 |  982 |     271 |   719 | 1,972 |
+| JSON     |     1 |  576 |       0 |     1 |   577 |
+| Markdown |     1 |  190 |       0 |   125 |   315 |
+| toml     |     1 |   20 |       0 |     4 |    24 |
 
-#### _Directories_
+## Directories
 
 | path         | files |  code | comment | blank | total |
 | :----------- | ----: | ----: | ------: | ----: | ----: |
-| .            |    16 | 1,838 |     283 |   911 | 3,032 |
+| .            |    15 | 1,768 |     271 |   849 | 2,888 |
+| api_trader   |     3 |   492 |     102 |   306 |   900 |
 | assets       |     5 |   114 |      34 |   100 |   248 |
 | gmail        |     1 |   122 |      34 |   107 |   263 |
-| live_trader  |     3 |   472 |     100 |   293 |   865 |
-| mongo        |     1 |    35 |       1 |    30 |    66 |
-| paper_trader |     1 |   114 |      14 |    86 |   214 |
+| mongo        |     1 |    36 |       1 |    30 |    67 |
 | tdameritrade |     1 |   138 |      85 |   113 |   336 |
 
 ### <a name="final-thoughts-and-support"></a> **FINAL THOUGHTS**
