@@ -8,7 +8,6 @@ from pathlib import Path
 import os
 from pymongo.errors import WriteError, WriteConcernError
 import traceback
-from pprint import pprint
 import time
 
 
@@ -19,12 +18,11 @@ path = Path(THIS_FOLDER)
 load_dotenv(dotenv_path=f"{path.parent}/config.env")
 
 RUN_TASKS = True if os.getenv('RUN_TASKS') == "True" else False
-RUN_LIVE_TRADER = True if os.getenv('RUN_LIVE_TRADER') == "True" else False
 
 
 class ApiTrader(Tasks, OrderBuilder):
 
-    def __init__(self, user, mongo, push, logger, account_id, tdameritrade, RUN_LIVE_TRADER):
+    def __init__(self, user, mongo, push, logger, account_id, tdameritrade):
         """
         Args:
             user ([dict]): [USER DATA FOR CURRENT INSTANCE]
@@ -34,7 +32,9 @@ class ApiTrader(Tasks, OrderBuilder):
             account_id ([str]): [USER ACCOUNT ID FOR TDAMERITRADE]
             asset_type ([str]): [ACCOUNT ASSET TYPE (EQUITY, OPTIONS)]
         """
-        self.RUN_LIVE_TRADER = RUN_LIVE_TRADER
+
+        self.RUN_LIVE_TRADER = True if user["Accounts"][str(
+            account_id)]["Account_Position"] == "Live" else False
 
         self.tdameritrade = tdameritrade
 
@@ -78,6 +78,9 @@ class ApiTrader(Tasks, OrderBuilder):
             self.logger.info(
                 f"NOT RUNNING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n", extra={'log': False})
 
+        self.logger.info(
+            f"RUNNING {user['Accounts'][str(account_id)]['Account_Position'].upper()} TRADER ({modifiedAccountID(self.account_id)})\n")
+
     # STEP ONE
     @exception_handler
     def sendOrder(self, trade_data, strategy_object, direction):
@@ -119,7 +122,7 @@ class ApiTrader(Tasks, OrderBuilder):
                 }
 
                 self.logger.info(
-                    f"{symbol} REJECTED For {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)} - REASON: {(resp.json())['error']}")
+                    f"{symbol} Rejected For {self.user['Name']} ({modifiedAccountID(self.account_id)}) - Reason: {(resp.json())['error']} ")
 
                 self.rejected.insert_one(other)
 
@@ -129,15 +132,19 @@ class ApiTrader(Tasks, OrderBuilder):
             obj["Order_ID"] = int(
                 (resp.headers["Location"]).split("/")[-1].strip())
 
+            obj["Account_Position"] = "Live"
+
         else:
 
             obj["Order_ID"] = -1*int(time.strftime("%Y%m%d%H%M%S"))
+
+            obj["Account_Position"] = "Paper"
 
         obj["Order_Status"] = "QUEUED"
 
         self.queueOrder(obj)
 
-        response_msg = f"{'Live Trade' if self.RUN_LIVE_TRADER else 'Paper Trade'}: {side} Order for Symbol {symbol} - {modifiedAccountID(self.account_id)}"
+        response_msg = f"{'Live Trade' if self.RUN_LIVE_TRADER else 'Paper Trade'}: {side} Order for Symbol {symbol} ({modifiedAccountID(self.account_id)})"
 
         self.logger.info(response_msg)
 
@@ -188,14 +195,14 @@ class ApiTrader(Tasks, OrderBuilder):
                     data_integrity = "Assumed"
 
                     self.logger.warning(
-                        f"Order ID Not Found. Moving {queue_order['Symbol']} {queue_order['Order_Type']} Order To {queue_order['Direction']} Positions - {modifiedAccountID(self.account_id)}")
+                        f"Order ID Not Found. Moving {queue_order['Symbol']} {queue_order['Order_Type']} Order To {queue_order['Direction']} Positions ({modifiedAccountID(self.account_id)})")
 
                 else:
 
                     data_integrity = "Reliable"
 
                     self.logger.info(
-                        f"Paper Trader - Sending Queue Order To PushOrder - {modifiedAccountID(self.account_id)}")
+                        f"Paper Trader - Sending Queue Order To PushOrder ({modifiedAccountID(self.account_id)})")
 
                 self.pushOrder(queue_order, custom, data_integrity)
 
@@ -238,7 +245,7 @@ class ApiTrader(Tasks, OrderBuilder):
                         other) if new_status == "REJECTED" else self.canceled.insert_one(other)
 
                     self.logger.info(
-                        f"{new_status.upper()} ORDER For {queue_order['Symbol']} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}")
+                        f"{new_status.upper()} Order For {queue_order['Symbol']} ({modifiedAccountID(self.account_id)})")
 
                 else:
 
@@ -287,6 +294,8 @@ class ApiTrader(Tasks, OrderBuilder):
 
         direction = queue_order["Direction"]
 
+        account_position = queue_order["Account_Position"]
+
         obj = {
             "Symbol": symbol,
             "Strategy": strategy,
@@ -295,7 +304,8 @@ class ApiTrader(Tasks, OrderBuilder):
             "Data_Integrity": data_integrity,
             "Trader": self.user["Name"],
             "Account_ID": account_id,
-            "Asset_Type": asset_type
+            "Asset_Type": asset_type,
+            "Account_Position": account_position
         }
 
         if asset_type == "OPTION":
@@ -355,7 +365,7 @@ class ApiTrader(Tasks, OrderBuilder):
                 if int(is_removed.deleted_count) == 0:
 
                     self.logger.error(
-                        f"INITIAL FAIL OF DELETING OPEN POSITION FOR SYMBOL {symbol} - {self.user['Name']} -  {modifiedAccountID(self.account_id)}")
+                        f"INITIAL FAIL OF DELETING OPEN POSITION FOR SYMBOL {symbol} - {self.user['Name']} ({modifiedAccountID(self.account_id)})")
 
                     self.open_positions.delete_one(
                         {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy})
@@ -392,7 +402,7 @@ class ApiTrader(Tasks, OrderBuilder):
             self.logger.error(msg)
 
         self.logger.info(
-            f"Pushing {side} Order For {symbol} To {'Open Positions' if direction == 'OPEN POSITION' else 'Closed Positions'} - {modifiedAccountID(self.account_id)}")
+            f"Pushing {side} Order For {symbol} To {'Open Positions' if direction == 'OPEN POSITION' else 'Closed Positions'} ({modifiedAccountID(self.account_id)})")
 
         # REMOVE FROM QUEUE
         self.queue.delete_one({"Trader": self.user["Name"], "Symbol": symbol,

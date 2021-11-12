@@ -116,7 +116,7 @@ class Tasks:
         """
 
         self.logger.info(
-            f"STARTING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})\n", extra={'log': False})
+            f"STARTING TASKS FOR {self.user['Name']} ({modifiedAccountID(self.account_id)})", extra={'log': False})
 
         while self.isAlive:
 

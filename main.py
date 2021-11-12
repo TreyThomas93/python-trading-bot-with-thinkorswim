@@ -1,8 +1,5 @@
 # imports
 import time
-import os
-from dotenv import load_dotenv
-from pathlib import Path
 import logging
 
 from api_trader import ApiTrader
@@ -15,16 +12,6 @@ from assets.exception_handler import exception_handler
 from assets.helper_functions import selectSleep
 from assets.timeformatter import Formatter
 from assets.multifilehandler import MultiFileHandler
-
-THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
-
-assets = os.path.join(THIS_FOLDER, 'assets')
-
-path = Path(THIS_FOLDER)
-
-load_dotenv(dotenv_path=f"{path.parent}/config.env")
-
-RUN_LIVE_TRADER = True if os.getenv('RUN_LIVE_TRADER') == "True" else False
 
 
 class Main:
@@ -72,12 +59,6 @@ class Main:
 
             self.not_connected = []
 
-            self.logger.info(
-                f"LIVE TRADER IS {'ACTIVE' if RUN_LIVE_TRADER else 'INACTIVE'}", extra={'log': False})
-
-            self.logger.info(
-                f"PAPER TRADER IS {'INACTIVE' if RUN_LIVE_TRADER else 'ACTIVE'}\n", extra={'log': False})
-
             return True
 
         return False
@@ -109,7 +90,7 @@ class Main:
                         if connected:
 
                             obj = ApiTrader(user, self.mongo, push_notification, self.logger, int(
-                                account_id), tdameritrade, RUN_LIVE_TRADER)
+                                account_id), tdameritrade)
 
                             self.traders[account_id] = obj
 
@@ -149,7 +130,7 @@ if __name__ == "__main__":
     connected = main.connectAll()
 
     if connected:
-        
+
         while True:
 
             main.run()

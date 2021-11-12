@@ -35,11 +35,11 @@ class MongoDB:
                 # SIMPLE TEST OF CONNECTION BEFORE CONTINUING
                 self.client.server_info()
 
-                self.users = self.client["Live_Trader"]["users"]
+                self.db = self.client["Api_Trader"]
 
-                self.strategies = self.client["Live_Trader"]["strategies"]
+                self.users = self.db["users"]
 
-                self.db = self.client["Live_Trader" if RUN_LIVE_TRADER else "Paper_Trader"]
+                self.strategies = self.db["strategies"]
 
                 self.open_positions = self.db["open_positions"]
 
