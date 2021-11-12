@@ -50,11 +50,11 @@ class PushNotification:
 
             if response.json()["success"] == 'message transmitted':
 
-                self.logger.info(f"PUSH NOTIFICATION SENT")
+                self.logger.info(f"Push Sent!")
 
             else:
 
-                self.logger.warning(f"PUSH NOTIFICATION FAILED")
+                self.logger.warning(f"Push Failed!")
 
         except ValueError:
 
