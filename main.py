@@ -5,8 +5,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import logging
 
-from live_trader import LiveTrader
-from paper_trader import PaperTrader
+from api_trader import ApiTrader
 from tdameritrade import TDAmeritrade
 from gmail import Gmail
 from mongo import MongoDB
@@ -26,7 +25,6 @@ path = Path(THIS_FOLDER)
 load_dotenv(dotenv_path=f"{path.parent}/config.env")
 
 RUN_LIVE_TRADER = True if os.getenv('RUN_LIVE_TRADER') == "True" else False
-RUN_PAPER_TRADER = True if os.getenv('RUN_PAPER_TRADER') == "True" else False
 
 
 class Main:
@@ -72,15 +70,13 @@ class Main:
 
             self.accounts = []
 
-            self.paper_trader = PaperTrader(self.mongo, self.logger)
-
             self.not_connected = []
 
             self.logger.info(
                 f"LIVE TRADER IS {'ACTIVE' if RUN_LIVE_TRADER else 'INACTIVE'}", extra={'log': False})
 
             self.logger.info(
-                f"PAPER TRADER IS {'ACTIVE' if RUN_PAPER_TRADER else 'INACTIVE'}\n", extra={'log': False})
+                f"PAPER TRADER IS {'INACTIVE' if RUN_LIVE_TRADER else 'ACTIVE'}\n", extra={'log': False})
 
             return True
 
@@ -112,8 +108,8 @@ class Main:
 
                         if connected:
 
-                            obj = LiveTrader(user, self.mongo, push_notification, self.logger, int(
-                                account_id), tdameritrade)
+                            obj = ApiTrader(user, self.mongo, push_notification, self.logger, int(
+                                account_id), tdameritrade, RUN_LIVE_TRADER)
 
                             self.traders[account_id] = obj
 
@@ -134,24 +130,13 @@ class Main:
         """ METHOD RUNS THE TWO METHODS ABOVE AND THEN RUNS LIVE TRADER METHOD RUNTRADER FOR EACH INSTANCE.
         """
 
-        paper_went = False
-
         self.setupTraders()
 
         trade_data = self.gmail.getEmails()
 
-        for live_trader in self.traders.values():
+        for api_trader in self.traders.values():
 
-            if RUN_LIVE_TRADER:
-
-                live_trader.runTrader(trade_data)
-
-            if not paper_went and RUN_PAPER_TRADER:  # ONLY RUN ONCE DESPITE NUMBER OF INSTANCES
-
-                self.paper_trader.runTrader(
-                    trade_data, live_trader.tdameritrade)
-
-                paper_went = True
+            api_trader.runTrader(trade_data)
 
 
 if __name__ == "__main__":
@@ -164,7 +149,7 @@ if __name__ == "__main__":
     connected = main.connectAll()
 
     if connected:
-
+        
         while True:
 
             main.run()

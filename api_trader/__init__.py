@@ -1,14 +1,15 @@
 from assets.helper_functions import getDatetime, modifiedAccountID
-from live_trader.tasks import Tasks
+from api_trader.tasks import Tasks
 from threading import Thread
 from assets.exception_handler import exception_handler
-from live_trader.order_builder import OrderBuilder
+from api_trader.order_builder import OrderBuilder
 from dotenv import load_dotenv
 from pathlib import Path
 import os
 from pymongo.errors import WriteError, WriteConcernError
 import traceback
 from pprint import pprint
+import time
 
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
@@ -18,11 +19,12 @@ path = Path(THIS_FOLDER)
 load_dotenv(dotenv_path=f"{path.parent}/config.env")
 
 RUN_TASKS = True if os.getenv('RUN_TASKS') == "True" else False
+RUN_LIVE_TRADER = True if os.getenv('RUN_LIVE_TRADER') == "True" else False
 
 
-class LiveTrader(Tasks, OrderBuilder):
+class ApiTrader(Tasks, OrderBuilder):
 
-    def __init__(self, user, mongo, push, logger, account_id, tdameritrade):
+    def __init__(self, user, mongo, push, logger, account_id, tdameritrade, RUN_LIVE_TRADER):
         """
         Args:
             user ([dict]): [USER DATA FOR CURRENT INSTANCE]
@@ -32,6 +34,8 @@ class LiveTrader(Tasks, OrderBuilder):
             account_id ([str]): [USER ACCOUNT ID FOR TDAMERITRADE]
             asset_type ([str]): [ACCOUNT ASSET TYPE (EQUITY, OPTIONS)]
         """
+        self.RUN_LIVE_TRADER = RUN_LIVE_TRADER
+
         self.tdameritrade = tdameritrade
 
         self.mongo = mongo
@@ -95,39 +99,45 @@ class LiveTrader(Tasks, OrderBuilder):
 
             order, obj = self.OCOorder(trade_data, strategy_object, direction)
 
-        # PLACE ORDER ################################################
-        resp = self.tdameritrade.placeTDAOrder(order)
+        # PLACE ORDER IF LIVE TRADER ################################################
+        if self.RUN_LIVE_TRADER:
 
-        status_code = resp.status_code
+            resp = self.tdameritrade.placeTDAOrder(order)
 
-        if status_code not in [200, 201]:
+            status_code = resp.status_code
 
-            other = {
-                "Symbol": symbol,
-                "Order_Type": side,
-                "Order_Status": "REJECTED",
-                "Strategy": strategy,
-                "Trader": self.user["Name"],
-                "Date": getDatetime(),
-                "Account_ID": self.account_id
-            }
+            if status_code not in [200, 201]:
 
-            self.logger.info(
-                f"{symbol} REJECTED For {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)} - REASON: {(resp.json())['error']}")
+                other = {
+                    "Symbol": symbol,
+                    "Order_Type": side,
+                    "Order_Status": "REJECTED",
+                    "Strategy": strategy,
+                    "Trader": self.user["Name"],
+                    "Date": getDatetime(),
+                    "Account_ID": self.account_id
+                }
 
-            self.rejected.insert_one(other)
+                self.logger.info(
+                    f"{symbol} REJECTED For {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)} - REASON: {(resp.json())['error']}")
 
-            return
+                self.rejected.insert_one(other)
 
-        # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
-        obj["Order_ID"] = int(
-            (resp.headers["Location"]).split("/")[-1].strip())
+                return
+
+            # GETS ORDER ID FROM RESPONSE HEADERS LOCATION
+            obj["Order_ID"] = int(
+                (resp.headers["Location"]).split("/")[-1].strip())
+
+        else:
+
+            obj["Order_ID"] = -1*int(time.strftime("%Y%m%d%H%M%S"))
 
         obj["Order_Status"] = "QUEUED"
 
         self.queueOrder(obj)
 
-        response_msg = f"{side} ORDER RESPONSE: {resp.status_code} - SYMBOL: {symbol} - TRADER: {self.user['Name']} - ACCOUNT ID: {modifiedAccountID(self.account_id)}"
+        response_msg = f"{'Live Trade' if self.RUN_LIVE_TRADER else 'Paper Trade'}: {side} Order for Symbol {symbol} - {modifiedAccountID(self.account_id)}"
 
         self.logger.info(response_msg)
 
@@ -164,18 +174,28 @@ class LiveTrader(Tasks, OrderBuilder):
             spec_order = self.tdameritrade.getSpecificOrder(
                 queue_order["Order_ID"])
 
-            # ORDER ID NOT FOUND. ASSUME REMOVED
+            # ORDER ID NOT FOUND. ASSUME REMOVED OR PAPER TRADING
             if "error" in spec_order:
-
-                self.logger.warning(
-                    f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {queue_order['Direction']} POSITIONS")
 
                 custom = {
                     "price": queue_order["Entry_Price"],
                     "shares": queue_order["Qty"]
                 }
 
-                data_integrity = "Assumed"
+                # IF RUNNING LIVE TRADER, THEN ASSUME DATA
+                if self.RUN_LIVE_TRADER:
+
+                    data_integrity = "Assumed"
+
+                    self.logger.warning(
+                        f"Order ID Not Found. Moving {queue_order['Symbol']} {queue_order['Order_Type']} Order To {queue_order['Direction']} Positions - {modifiedAccountID(self.account_id)}")
+
+                else:
+
+                    data_integrity = "Reliable"
+
+                    self.logger.info(
+                        f"Paper Trader - Sending Queue Order To PushOrder - {modifiedAccountID(self.account_id)}")
 
                 self.pushOrder(queue_order, custom, data_integrity)
 
@@ -300,7 +320,7 @@ class LiveTrader(Tasks, OrderBuilder):
 
             collection_insert = self.open_positions.insert_one
 
-            message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n"
+            message_to_push = f">>>> \n Side: {side} \n Symbol: {symbol} \n Qty: {shares} \n Price: ${price} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Date: {getDatetime()} \n Trader: {self.user['Name']} \n Account Position: {'Live Trade' if self.RUN_LIVE_TRADER else 'Paper Trade'}"
 
         elif direction == "CLOSE POSITION":
 
@@ -324,7 +344,7 @@ class LiveTrader(Tasks, OrderBuilder):
 
             collection_insert = self.closed_positions.insert_one
 
-            message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Entry Price: ${position['Entry_Price']} \n Entry Date: {position['Entry_Date']} \n Exit Price: ${price} \n Exit Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n"
+            message_to_push = f"____ \n Side: {side} \n Symbol: {symbol} \n Qty: {position['Qty']} \n Entry Price: ${position['Entry_Price']} \n Entry Date: {position['Entry_Date']} \n Exit Price: ${price} \n Exit Date: {getDatetime()} \n Strategy: {strategy} \n Asset Type: {asset_type} \n Trader: {self.user['Name']} \n Account Position: {'Live Trade' if self.RUN_LIVE_TRADER else 'Paper Trade'}"
 
             # REMOVE FROM OPEN POSITIONS
             is_removed = self.open_positions.delete_one(
@@ -372,7 +392,7 @@ class LiveTrader(Tasks, OrderBuilder):
             self.logger.error(msg)
 
         self.logger.info(
-            f"PUSHING {side} ORDER For {symbol} - TRADER: {self.user['Name']}")
+            f"Pushing {side} Order For {symbol} To {'Open Positions' if direction == 'OPEN POSITION' else 'Closed Positions'} - {modifiedAccountID(self.account_id)}")
 
         # REMOVE FROM QUEUE
         self.queue.delete_one({"Trader": self.user["Name"], "Symbol": symbol,
