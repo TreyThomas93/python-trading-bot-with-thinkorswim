@@ -171,7 +171,7 @@ class LiveTrader(Tasks, OrderBuilder):
                     f"ORDER ID NOT FOUND. MOVING {queue_order['Symbol']} {queue_order['Order_Type']} ORDER TO {queue_order['Direction']} POSITIONS")
 
                 custom = {
-                    "price": queue_order["Buy_Price"],
+                    "price": queue_order["Entry_Price"],
                     "shares": queue_order["Qty"]
                 }
 
