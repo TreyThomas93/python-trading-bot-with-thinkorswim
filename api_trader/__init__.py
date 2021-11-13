@@ -103,6 +103,10 @@ class ApiTrader(Tasks, OrderBuilder):
 
             order, obj = self.OCOorder(trade_data, strategy_object, direction)
 
+        if order == None and obj == None:
+
+            return
+
         # PLACE ORDER IF LIVE TRADER ################################################
         if self.RUN_LIVE_TRADER:
 
