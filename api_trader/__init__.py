@@ -9,6 +9,7 @@ import os
 from pymongo.errors import WriteError, WriteConcernError
 import traceback
 import time
+from random import randint
 
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
@@ -136,8 +137,9 @@ class ApiTrader(Tasks, OrderBuilder):
 
         else:
 
-            obj["Order_ID"] = -1*int(time.strftime("%Y%m%d%H%M%S"))
-
+            # obj["Order_ID"] = -1*int(time.strftime("%Y%m%d%H%M%S"))
+            obj["Order_ID"] = -1*randint(100_000_000, 999_999_999)
+            print(obj["Order_ID"])
             obj["Account_Position"] = "Paper"
 
         obj["Order_Status"] = "QUEUED"
@@ -157,7 +159,8 @@ class ApiTrader(Tasks, OrderBuilder):
             order ([dict]): [ORDER DATA TO BE PLACED IN QUEUE COLLECTION]
         """
         # ADD TO QUEUE WITHOUT ORDER ID AND STATUS
-        self.queue.insert_one(order)
+        self.queue.update_one(
+            {"Trader": self.user["Name"], "Symbol": order["Symbol"], "Strategy": order["Strategy"]}, {"$set": order}, upsert=True)
 
     # STEP THREE
     @exception_handler

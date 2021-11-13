@@ -42,9 +42,9 @@ def getUTCDatetime():
 
 def selectSleep():
     """
-    PRE-MARKET(0400 - 0930 ET): 5 SECONDS
-    MARKET OPEN(0930 - 1600 ET): 5 SECONDS
-    AFTER MARKET(1600 - 2000 ET): 5 SECONDS
+    PRE-MARKET(0400 - 0930 ET): 1 SECOND
+    MARKET OPEN(0930 - 1600 ET): 1 SECOND
+    AFTER MARKET(1600 - 2000 ET): 1 SECOND
 
     WEEKENDS: 60 SECONDS
     WEEKDAYS(2000 - 0400 ET): 60 SECONDS
@@ -67,8 +67,8 @@ def selectSleep():
 
         return 60
 
-    # ELSE RETURN 5 SECONDS
-    return 5
+    # ELSE RETURN 1 SECOND
+    return 1
 
 
 def modifiedAccountID(account_id):
