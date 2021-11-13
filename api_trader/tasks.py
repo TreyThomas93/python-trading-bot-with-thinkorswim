@@ -99,7 +99,7 @@ class Tasks:
                "Asset_Type": asset_type,
                "Position_Size": 500,
                "Position_Type": "LONG",
-               "Trader": self.user["Name"],
+               "Account_ID": self.account_id,
                "Strategy": strategy,
                }
 

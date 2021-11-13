@@ -450,14 +450,14 @@ class ApiTrader(Tasks, OrderBuilder):
                 {"Trader": self.user["Name"], "Symbol": symbol, "Strategy": strategy, "Account_ID": self.account_id})
 
             strategy_object = self.strategies.find_one(
-                {"Strategy": strategy, "Trader": self.user["Name"]})
+                {"Strategy": strategy, "Account_ID": self.account_id})
 
             if not strategy_object:
 
                 self.addNewStrategy(strategy, asset_type)
 
                 strategy_object = self.strategies.find_one(
-                    {"Trader": self.user["Name"], "Strategy": strategy})
+                    {"Account_ID": self.account_id, "Strategy": strategy})
 
             position_type = strategy_object["Position_Type"]
 
