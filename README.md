@@ -56,6 +56,8 @@
 
 - For the OCO orders, the bot uses a task to check your TDA account to see if any OCO exits have triggered.
 
+- **ATTENTION** - The bot is designed to either paper trade or live trade, but not at the same time. You can do one or the other. This can be changed by the value set for the "Account_Position" field located in your account object stored in the users collection in mongo. The options for this field are "Paper" and "Live". These are case sensitive. By default when the account is created, it is set to "Paper" as a safety precaution for the user.
+
 ---
 
 ## <a name="getting-started"></a> Getting Started
@@ -175,20 +177,17 @@
 
 ---
 
-- Create a MongoDB [account](https://www.mongodb.com/), create a cluster, and create two databases with the following names:
+- Create a MongoDB [account](https://www.mongodb.com/), create a cluster, and create one database with the following names:
 
-  1. Live_Trader
-  2. Paper_Trader
+  1. Api_Trader
 
-- The Live_Trader database will contain all the important data used for actual live trading.
-
-- The Paper_Trader database will be used for paper trading, basically buying and selling everything, regardless of buying power.
+- The Api_Trader will contain all live and paper data. Each document contains a field called Account_Position which will tell the bot if its for paper trading or live trading.
 
 - You will need the mongo URI to be able to connect pymongo in the program. Store this URI in a config.env file within your mongo package in your code.
 
-> #### _LiveTrader_
+> #### _ApiTrader_
 
-- The collections you will find in the Live_Trader database will be the following:
+- The collections you will find in the Api_Trader database will be the following:
 
   1. users
   2. queue
@@ -212,16 +211,7 @@
 
 - The strategies collection stores all strategies that have been used with the bot. Here is an example of a strategy object stored in mongo: `{"Active": True, "Order_Type": "STANDARD", "Asset_Type": asset_type, "Position_Size": 500, "Position_Type": "LONG", "Trader": self.user["Name"], "Strategy": strategy, }`
 
-> #### _PaperTrader_
-
-- The collections you will find in the Paper_Trader database will be the following:
-
-  1. open_positions
-  2. closed_positions
-
-- The open_positions collection stores all open positions and is used to help determine if an order is warranted.
-
-- The closed_positions collection stores all closed positions after a trade has completed.
+- **FYI** - You are able to add more collections for additional tasks that you so wish to use with the bot. Mongo will automatically add a collection if it doesnt exist when the bot needs to use it so you dont need to manually create it.
 
 ### <a name="pushsafer"></a> **PUSHSAFER**
 
