@@ -1,6 +1,7 @@
 # imports
 import time
 import logging
+import os
 
 from api_trader import ApiTrader
 from tdameritrade import TDAmeritrade
@@ -21,8 +22,9 @@ class Main:
         """
 
         # INSTANTIATE LOGGER
-        file_handler = MultiFileHandler(filename='logs/error.log', mode='a')
-
+        file_handler = MultiFileHandler(
+            filename=f'{os.path.abspath(os.path.dirname(__file__))}/logs/error.log', mode='a')
+        
         formatter = Formatter('%(asctime)s [%(levelname)s] %(message)s')
 
         file_handler.setFormatter(formatter)
