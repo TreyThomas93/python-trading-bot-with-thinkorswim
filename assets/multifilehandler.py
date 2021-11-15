@@ -1,5 +1,6 @@
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 
 # ['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__',
 # '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 'args', 'created', 'exc_info', 'exc_text', 'filename', 'funcName', 'getMessage', 'levelname', 'levelno', 'lineno', 'module', 'msecs', 'msg', 'name', 'pathname', 'process', 'processName', 'relativeCreated', 'stack_info', 'thread', 'threadName']
@@ -12,6 +13,9 @@ class MultiFileHandler(RotatingFileHandler):
         RotatingFileHandler.__init__(
             self, filename, mode, maxBytes=10000, backupCount=1, encoding=None, delay=0)
 
+        self.path = f"{os.path.abspath(os.path.dirname(__file__))}/logs".replace(
+            "assets/", "")
+        
     def emit(self, record):
 
         if "log" in dir(record) and not record.log:
@@ -28,19 +32,19 @@ class MultiFileHandler(RotatingFileHandler):
 
         if levelname == "WARNING":
 
-            file_id = "logs/warning.log"
+            file_id = f"{self.path}/warning.log"
 
         elif levelname == "ERROR":
 
-            file_id = "logs/error.log"
+            file_id = f"{self.path}/error.log"
 
         elif levelname == "DEBUG":
 
-            file_id = "logs/debug.log"
+            file_id = f"{self.path}/debug.log"
 
         elif levelname == "INFO":
 
-            file_id = "logs/info.log"
+            file_id = f"{self.path}/info.log"
 
         if file_id is not None:
 

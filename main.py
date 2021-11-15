@@ -24,7 +24,7 @@ class Main:
         # INSTANTIATE LOGGER
         file_handler = MultiFileHandler(
             filename=f'{os.path.abspath(os.path.dirname(__file__))}/logs/error.log', mode='a')
-        
+
         formatter = Formatter('%(asctime)s [%(levelname)s] %(message)s')
 
         file_handler.setFormatter(formatter)
