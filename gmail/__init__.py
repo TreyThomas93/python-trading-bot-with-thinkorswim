@@ -166,7 +166,7 @@ class Gmail:
 
                                     obj = {
                                         "Symbol": symbol.strip(),
-                                        "Side": side.upper().strip(),
+                                        "Side": side.replace(".", " ").upper().strip(),
                                         "Strategy": strategy.replace(".", " ").upper().strip(),
                                         "Asset_Type": "EQUITY"
                                     }
@@ -188,7 +188,7 @@ class Gmail:
                                         obj["Asset_Type"] = "OPTION"
 
                                     # CHECK TO SEE IF ASSET TYPE AND SIDE ARE A LOGICAL MATCH
-                                    if side.upper().strip() in ["SELL", "BUY"] and obj["Asset_Type"] == "EQUITY" or side.upper().strip() in ["SELL_TO_CLOSE", "SELL_TO_OPEN", "BUY_TO_CLOSE", "BUY_TO_OPEN"] and obj["Asset_Type"] == "OPTION":
+                                    if side.replace(".", " ").upper().strip() in ["SELL", "BUY"] and obj["Asset_Type"] == "EQUITY" or side.replace(".", " ").upper().strip() in ["SELL_TO_CLOSE", "SELL_TO_OPEN", "BUY_TO_CLOSE", "BUY_TO_OPEN"] and obj["Asset_Type"] == "OPTION":
 
                                         trade_data.append(obj)
 
@@ -204,7 +204,8 @@ class Gmail:
 
                             break
 
-                    self.logger.info(f"New Email: {payload}", extra={'log': False})
+                    self.logger.info(
+                        f"New Email: {payload}", extra={'log': False})
 
             except IndexError:
 
