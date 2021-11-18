@@ -303,6 +303,8 @@ class ApiTrader(Tasks, OrderBuilder):
 
         account_position = queue_order["Account_Position"]
 
+        order_type = queue_order["Order_Type"]
+
         obj = {
             "Symbol": symbol,
             "Strategy": strategy,
@@ -312,7 +314,8 @@ class ApiTrader(Tasks, OrderBuilder):
             "Trader": self.user["Name"],
             "Account_ID": account_id,
             "Asset_Type": asset_type,
-            "Account_Position": account_position
+            "Account_Position": account_position,
+            "Order_Type": order_type
         }
 
         if asset_type == "OPTION":
