@@ -192,7 +192,7 @@ class ApiTrader(Tasks, OrderBuilder):
             if "error" in spec_order:
 
                 custom = {
-                    "price": queue_order["Entry_Price"],
+                    "price": queue_order["Entry_Price"] if queue_order["Direction"] == "OPEN POSITION" else queue_order["Exit_Price"],
                     "shares": queue_order["Qty"]
                 }
 
