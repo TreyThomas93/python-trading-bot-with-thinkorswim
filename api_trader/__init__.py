@@ -143,7 +143,7 @@ class ApiTrader(Tasks, OrderBuilder):
 
             # obj["Order_ID"] = -1*int(time.strftime("%Y%m%d%H%M%S"))
             obj["Order_ID"] = -1*randint(100_000_000, 999_999_999)
-            print(obj["Order_ID"])
+
             obj["Account_Position"] = "Paper"
 
         obj["Order_Status"] = "QUEUED"
