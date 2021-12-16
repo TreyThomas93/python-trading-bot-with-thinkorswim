@@ -112,7 +112,7 @@ class OrderBuilder:
         # OCO ORDER NEEDS TO USE ASK PRICE FOR ISSUE WITH THE ORDER BEING TERMINATED UPON BEING PLACED
         if OCOorder:
 
-            price = float(resp[symbol][SELL_PRICE])
+            price = float(resp[symbol  if asset_type == "EQUITY" else trade_data["Pre_Symbol"]][SELL_PRICE])
 
         self.order["price"] = round(
             price, 2) if price >= 1 else round(price, 4)

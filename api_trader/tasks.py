@@ -1,8 +1,21 @@
 
 # imports
 import time
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
 from assets.exception_handler import exception_handler
 from assets.helper_functions import getDatetime, selectSleep, modifiedAccountID
+
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+path = Path(THIS_FOLDER)
+
+load_dotenv(dotenv_path=f"{path.parent}/config.env")
+
+TAKE_PROFIT_PERCENTAGE = float(os.getenv('TAKE_PROFIT_PERCENTAGE'))
+STOP_LOSS_PERCENTAGE = float(os.getenv('STOP_LOSS_PERCENTAGE'))
 
 
 class Tasks:
@@ -15,6 +28,24 @@ class Tasks:
     def __init__(self):
 
         self.isAlive = True
+
+    @exception_handler
+    def checkOCOpapertriggers(self):
+
+        for position in self.mongo.open_positions.find({"Trader": self.user["Name"]}):
+
+            symbol = position["Symbol"]
+
+            asset_type = position["Asset_Type"]
+
+            resp = self.tdameritrade.getQuote(
+                symbol if asset_type == "EQUITY" else position["Pre_Symbol"])
+
+            price = float(resp[symbol  if asset_type == "EQUITY" else position["Pre_Symbol"]]["askPrice"])
+
+            if price <= (position["Entry_Price"] * STOP_LOSS_PERCENTAGE) or price >= (position["Entry_Price"] * TAKE_PROFIT_PERCENTAGE):
+                # CLOSE POSITION
+                pass
 
     @exception_handler
     def checkOCOtriggers(self):
@@ -86,7 +117,7 @@ class Tasks:
 
         return oco_children
 
-    @ exception_handler
+    @exception_handler
     def addNewStrategy(self, strategy, asset_type):
         """ METHOD UPDATES STRATEGIES OBJECT IN MONGODB WITH NEW STRATEGIES.
 

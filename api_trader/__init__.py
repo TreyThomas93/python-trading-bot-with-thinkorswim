@@ -141,7 +141,6 @@ class ApiTrader(Tasks, OrderBuilder):
 
         else:
 
-            # obj["Order_ID"] = -1*int(time.strftime("%Y%m%d%H%M%S"))
             obj["Order_ID"] = -1*randint(100_000_000, 999_999_999)
 
             obj["Account_Position"] = "Paper"
@@ -435,6 +434,9 @@ class ApiTrader(Tasks, OrderBuilder):
         # UPDATE USER ATTRIBUTE
         self.user = self.mongo.users.find_one({"Name": self.user["Name"]})
 
+        # FORBIDDEN SYMBOLS
+        forbidden_symbols = self.mongo.forbidden.find({"Account_ID": str(self.account_id)})
+
         for row in trade_data:
 
             strategy = row["Strategy"]
@@ -499,7 +501,7 @@ class ApiTrader(Tasks, OrderBuilder):
 
                         continue
 
-                else:
+                elif not open_position and symbol not in forbidden_symbols:
 
                     direction = "OPEN POSITION"
 

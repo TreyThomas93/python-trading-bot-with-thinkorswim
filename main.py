@@ -130,11 +130,9 @@ if __name__ == "__main__":
     main = Main()
 
     connected = main.connectAll()
+    
+    while connected:
 
-    if connected:
+        main.run()
 
-        while True:
-
-            main.run()
-
-            time.sleep(selectSleep())
+        time.sleep(selectSleep())

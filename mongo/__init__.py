@@ -51,6 +51,8 @@ class MongoDB:
 
                 self.queue = self.db["queue"]
 
+                self.forbidden = self.db["forbidden"]
+
                 self.logger.info("CONNECTED TO MONGO!\n", extra={'log': False})
 
                 return True
