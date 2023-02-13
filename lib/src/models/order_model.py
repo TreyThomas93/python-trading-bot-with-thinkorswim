@@ -6,20 +6,29 @@ from src.models.enums import *
 
 class Order:
 
-    def __init__(self, tradeData: dict):
-        self.orderType: str = tradeData.get(
-            "orderType", OrderType.MARKET)
-        self.symbol: str = tradeData["symbol"]
-        self.side: str = Helper.getSideEnum(tradeData["side"])
-        self.strategy: str = tradeData["strategy"]
-        self.assetType: str = AssetType.EQUITY
-        self.session: str = Session.NORMAL
-        self.duration: str = Duration.GOOD_TILL_CANCEL
-        self.price: float = tradeData.get('price') or 0.0
-        self.quantity: int = tradeData.get('quantity') or 0
+    def __init__(self, symbol: str, side: Side, strategy: str, orderStatus: OrderStatus = OrderStatus.WORKING, orderId: int = None, quantity: int = 1, price: float = 0.0) -> None:
+        self.symbol: str = symbol
+        self.side: str = Helper.getSideEnum(side)
+        self.strategy: str = strategy
+        self.price: float = price
+        self.quantity: int = quantity
         self.dt: datetime = datetime.now()
-        self.orderId = tradeData.get('orderId') or 0
-        self.orderStatus = tradeData.get('orderStatus') or None
+        self.orderId = orderId
+        self.orderStatus = orderStatus
+
+        self.orderType = None
+        self.assetType = None
+        self.session = None
+        self.duration = None
+
+    @classmethod
+    def marketOrder(cls,  symbol: str, side: Side, strategy: str):
+        instance = cls(symbol=symbol, side=side, strategy=strategy)
+        instance.orderType: OrderType = OrderType.MARKET
+        instance.assetType: str = AssetType.EQUITY
+        instance.session: str = Session.NORMAL
+        instance.duration: str = Duration.GOOD_TILL_CANCEL
+        return instance
 
     def toJson(self) -> dict:
         return {
@@ -37,8 +46,26 @@ class Order:
             'orderStatus': self.orderStatus.value if self.orderStatus != None else None
         }
 
+    @classmethod
+    def fromJson(cls, order: dict):
+        instance = cls(
+            symbol=order["symbol"], side=order["side"], strategy=order["strategy"])
+        instance.symbol = order["symbol"]
+        instance.side = Helper.getSideEnum(order["side"])
+        instance.strategy = order["strategy"]
+        instance.price = order["price"]
+        instance.quantity = order["quantity"]
+        instance.dt = Helper.stringToDateTime(order["dt"])
+        instance.orderId = order["orderId"]
+        instance.orderStatus = Helper.getOrderStatusEnum(order["orderStatus"])
+        instance.orderType = Helper.getOrderTypeEnum(order["orderType"])
+        instance.assetType = Helper.getAssetTypeEnum(order["assetType"])
+        instance.session = Helper.getSessionEnum(order["session"])
+        instance.duration = Helper.getDurationEnum(order["duration"])
+        return instance
+
     @property
-    def marketOrder(self) -> dict:
+    def marketOrderBracket(self) -> dict:
         return {
             "orderType": self.orderType,
             "session": self.session,
@@ -57,4 +84,13 @@ class Order:
         }
 
     def __str__(self) -> str:
-        return f"Order(Order Type: {self.orderType}, Symbol: {self.symbol}, Side: {self.side}, Strategy: {self.strategy}, Asset Type: {self.assetType}, Session: {self.session}, Duration: {self.duration}, Price: {self.price}, Quantity: {self.quantity}, Date Time: {self.dt}, Order ID: {self.orderId}, Order Status: {self.orderStatus})"
+        return f"""Order(
+            symbol: {self.symbol},
+            side: {self.side},
+            strategy: {self.strategy},
+            price: {self.price},
+            quantity: {self.quantity},
+            dt: {self.dt},
+            orderId: {self.orderId},
+            orderStatus: {self.orderStatus}
+        )"""

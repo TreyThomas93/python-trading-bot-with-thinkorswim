@@ -1,10 +1,8 @@
-config.env
+*.env
 .vscode
 *__pycache__
 *.txt
 .VSCodeCounter
-token.json
-credentials.json
+*.json
 *.log
-test.py
-oldrm.md
+*.conf

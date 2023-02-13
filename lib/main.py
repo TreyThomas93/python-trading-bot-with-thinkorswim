@@ -23,13 +23,8 @@ if __name__ == "__main__":
 
                     for symbol in symbols:
                         if strategy != "" and side != "":
-                            orderObjects.append(Order(
-                                {
-                                    "symbol": symbol.strip(),
-                                    "side": side.replace(".", " ").upper().strip(),
-                                    "strategy": strategy.replace(
-                                        ".", " ").upper().strip()
-                                }
+                            orderObjects.append(Order.marketOrder(symbol=symbol.strip(), side=side.replace(".", " ").upper().strip(), strategy=strategy.replace(
+                                ".", " ").upper().strip()
                             ))
 
     Trader().trade(orderObjects)

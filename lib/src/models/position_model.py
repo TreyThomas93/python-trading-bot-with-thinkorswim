@@ -35,27 +35,28 @@ class Position:
             "strategy": self.strategy,
             "assetType": self.assetType.value,
             "quantity": self.quantity,
-            "orderStatus": self.orderStatus.value,
             "entryPrice": self.entryPrice,
             "entryDate": Helper.dateTimeToString(self.entryDate),
             "exitDate": Helper.dateTimeToString(self.exitDate),
             "exitPrice": self.exitPrice
         }
 
-    def fromJson(self, json: dict):
-        self.orderId = json["orderId"]
-        self.tradeType = Helper.getTradeTypeEnum(json["tradeType"])
-        self.symbol = json["symbol"]
-        self.side = Helper.getSideEnum(json["side"])
-        self.strategy = json["strategy"]
-        self.assetType = Helper.getAssetTypeEnum(json["assetType"])
-        self.quantity = json["quantity"]
-        self.orderStatus = json["orderStatus"]
-        self.entryPrice = json["entryPrice"]
-        self.entryDate = Helper.stringToDateTime(json["entryDate"])
-        self.exitDate = Helper.stringToDateTime(json["exitDate"])
-        self.exitPrice = json["exitPrice"]
-        return self
+    @classmethod
+    def fromJson(cls, json: dict):
+        instance = cls(
+            Order(symbol=json["symbol"], side=json["side"], strategy=json["strategy"]))
+        instance.orderId = json["orderId"]
+        instance.tradeType = Helper.getTradeTypeEnum(json["tradeType"])
+        instance.symbol = json["symbol"]
+        instance.side = Helper.getSideEnum(json["side"])
+        instance.strategy = json["strategy"]
+        instance.assetType = Helper.getAssetTypeEnum(json["assetType"])
+        instance.quantity = json["quantity"]
+        instance.entryPrice = json["entryPrice"]
+        instance.entryDate = Helper.stringToDateTime(json["entryDate"])
+        instance.exitDate = Helper.stringToDateTime(json["exitDate"])
+        instance.exitPrice = json["exitPrice"]
+        return instance
 
     def __str__(self) -> str:
         return f"""Position(
@@ -65,7 +66,6 @@ class Position:
             strategy: {self.strategy},
             assetType: {self.assetType},
             quantity: {self.quantity},
-            orderStatus: {self.orderStatus},
             entryPrice: {self.entryPrice},
             entryDate: {self.entryDate},
             exitDate: {self.exitDate},

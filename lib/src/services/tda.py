@@ -5,8 +5,8 @@ from random import randint
 
 class TDA:
 
-    def placeTDAOrder(self):
-        pass
+    def placeTDAOrder(self) -> dict:
+        return {}
 
     def getQuote(self, symbol: str) -> dict:
         return {symbol: {"lastPrice": randint(1.00, 101.00)}}
@@ -14,6 +14,6 @@ class TDA:
     def getSpecificOrder(self, orderId: int) -> dict:
         return {
             'orderId': orderId,
-            'status': 'WORKING',
-            'price': 100.00,
+            'status': 'FILLED',
+            'price': randint(1.00, 101.00),
         }

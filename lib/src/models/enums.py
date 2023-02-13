@@ -47,3 +47,6 @@ class TradeType(Enum):
 class OrderStatus(Enum):
     QUEUED = "QUEUED"
     FILLED = "FILLED"
+    WORKING = "WORKING"
+    REJECTED = "REJECTED"
+    CANCELED = "CANCELED"

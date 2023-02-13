@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from random import randint
+from src.utils.helper import Helper
 from src.models.enums import OrderStatus
 from src.models.enums import Side, TradeType
 from src.models.order_model import Order
@@ -17,7 +18,15 @@ class Trader(TDA, Database):
 
         self.tradeType: TradeType = TradeType.PAPER
 
-    def trade(self, orders: list):
+    def trade(self, orders: list) -> None:
+        """starts the trading process.
+
+        Args:
+            orders (list): list of Order objects created from the emails.
+
+        Returns:
+            None
+        """
 
         self.__checkOrderStatus()
 
@@ -39,9 +48,18 @@ class Trader(TDA, Database):
 
             self.__sendOrder(order)
 
-    def __sendOrder(self, order: Order):
+    def __sendOrder(self, order: Order) -> None:
+        """Send order to TDAmeritrade if live, or to local database if paper.
 
-        order.quantity = 1
+        Args:
+            order (Order): Order object to send to TDAmeritrade or local database.
+
+        Returns:
+            None
+        """
+
+        # can set quantity here based on anything. could query account balance and then divide by [lastPrice] of symbol to get quantity. defaults to 1.
+        # order.quantity = 1
 
         orderId = None
         if self.tradeType == TradeType.LIVE:
@@ -49,6 +67,7 @@ class Trader(TDA, Database):
 
             if resp.status_code not in [200, 201]:
                 # TODO: Add to rejected orders database.
+                print(f"Order {order.orderId} was rejected.")
                 return
 
             orderId = int(
@@ -61,24 +80,33 @@ class Trader(TDA, Database):
 
             order.price = float(resp[order.symbol]['lastPrice'])
 
-            # Fetch quote price from TDA and store in Position instance.
+            # generate random order id for paper trading.
             orderId = -1*randint(100_000_000, 999_999_999)
 
         order.orderId = orderId
 
         self.queueOrder(order)
 
-    def __checkOrderStatus(self):
+    def __checkOrderStatus(self) -> None:
+        """Checks the status of all queued orders and handles according to new status fetched from TDA server.
+
+        If paper trading, then just push order to local database.
+
+        Returns:
+            None
+        """
+
         # TODO: Get all queued orders from local database.
         queued_orders = self.getQueuedOrders()
 
         # TODO: iterate over all queued orders and check TDA for order status.
         for order in queued_orders:
 
-            orderId = order['orderId']
+            order = Order.fromJson(order)
 
-            order = Order(order)
+            orderId = order.orderId
 
+            # TODO uncomment this for paper trading
             # if self.tradeType == TradeType.PAPER:
             #     self.__pushOrder(order, {
             #         "price": order.price
@@ -92,24 +120,24 @@ class Trader(TDA, Database):
                     f"An error occured while fetching order {orderId}.")
                 continue
 
-            newStatus = specOrder["status"]
+            newStatus = Helper.getOrderStatusEnum(specOrder["status"])
 
             if orderId != specOrder["orderId"]:
                 # TODO: Add to rejected orders database.
                 print(f"Order {orderId} was not found.")
                 self.removeFromQueue(order)
                 continue
-            
+
             # if status has not changed, then continue.
             if order.orderStatus == newStatus:
                 print('Order status has not changed.')
                 continue
 
             match newStatus:
-                case "FILLED":
+                case OrderStatus.FILLED:
                     print(f"Pushing order {orderId} to local database.")
                     self.__pushOrder(order, specOrder)
-                case "REJECTED" | "CANCELED":
+                case OrderStatus.REJECTED | OrderStatus.CANCELED:
                     # TODO: Add to rejected orders database.
                     print(f"Order {orderId} was {newStatus}.")
                     self.removeFromQueue(order)
@@ -118,7 +146,17 @@ class Trader(TDA, Database):
                     print(f"Order {orderId} is {newStatus}.")
                     self.updateOrderStatus(order, newStatus)
 
-    def __pushOrder(self, order: Order, specOrder: dict):
+    def __pushOrder(self, order: Order, specOrder: dict) -> None:
+        """Pushes order to local database. If order is a buy order, then add to open positions database. If order is a sell order, then add to closed positions database.
+
+        Args:
+            order (Order): Order object to push to local database.
+            specOrder (dict): Dictionary containing order details from TDA server.
+
+        Returns:
+            None
+        """
+
         symbol = order.symbol
         price = float(specOrder["price"])
         price = round(price, 2) if price >= 1 else round(price, 4)
@@ -129,21 +167,19 @@ class Trader(TDA, Database):
 
             openPosition = Position(order)
             openPosition.tradeType = self.tradeType
-            openPosition.orderStatus = OrderStatus.FILLED
 
             # Add position to local database
             self.addToOpenPositions(openPosition)
 
             print(f"Added {symbol} to open positions")
         ############################################################
-        # If open position found, then update position and save to local database. [SELLING_POSITION]
+        # If open position found, then remove from open positions database and add to closed positions database. [SELLING_POSITION]
         elif order.side == Side.SELL:
 
             closedPosition = self.getOpenPosition(order)
             closedPosition.exitPrice = order.price
             closedPosition.exitDate = datetime.now()
             closedPosition.orderId = order.orderId
-            closedPosition.orderStatus = OrderStatus.FILLED
             closedPosition.tradeType = self.tradeType
 
             # remove from open positions
