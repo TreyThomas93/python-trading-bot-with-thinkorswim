@@ -2,29 +2,29 @@
 
 from datetime import datetime
 from random import randint
+from src.models.enums import AssetType, Side, TradeType
 from src.utils.helper import Helper
-from src.models.enums import OrderStatus
 from src.models.order_model import Order
 
 
 class Position:
 
     def __init__(self, order: Order) -> None:
-        self.orderId = order.orderId
-        self.tradeType = None
-        self.symbol = order.symbol
-        self.side = order.side
-        self.strategy = order.strategy
-        self.assetType = order.assetType
-        self.quantity = order.quantity
+        self.orderId: int = order.orderId
+        self.tradeType: TradeType = None
+        self.symbol: str = order.symbol
+        self.side: Side = order.side
+        self.strategy: str = order.strategy
+        self.assetType: AssetType = order.assetType
+        self.quantity: int = order.quantity
 
         # Entry
-        self.entryPrice = order.price
-        self.entryDate = datetime.now()
+        self.entryPrice: float = order.price
+        self.entryDate: datetime = datetime.now()
 
         # Exit
-        self.exitDate = None
-        self.exitPrice = None
+        self.exitDate: float = None
+        self.exitPrice: float = None
 
     def toJson(self):
         return {

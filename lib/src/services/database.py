@@ -1,4 +1,5 @@
 from json_database import JsonStorage, JsonDatabase
+from src.models.user_model import User
 from src.models.order_model import Order
 from src.models.enums import OrderStatus
 
@@ -12,7 +13,19 @@ class Database:
         self.openPositionsDB = 'open_positions'
         self.closedPositionsDB = 'closed_positions'
         self.queuedOrdersDB = 'queued_orders'
+        self.usersDB = 'users'
         self.path = 'lib/src/data'
+
+    def getUsers(self) -> list:
+        users = []
+        with JsonDatabase(self.usersDB, f'{self.path}/{self.usersDB}.conf') as db:
+            for user in db:
+                users.append(User.fromJson(user))
+        return users
+
+    def addUser(self, user: User) -> None:
+        with JsonDatabase(self.usersDB, f'{self.path}/{self.usersDB}.conf') as db:
+            db.add_item(user.toJson())
 
     def queueOrder(self, order: Order):
         with JsonDatabase(self.queuedOrdersDB, f'{self.path}/{self.queuedOrdersDB}.conf') as db:

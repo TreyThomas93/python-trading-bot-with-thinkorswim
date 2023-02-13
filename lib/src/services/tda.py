@@ -5,6 +5,13 @@ from random import randint
 
 class TDA:
 
+    def __init__(self, accountId: int, accountInfo: dict) -> None:
+        self.accountId = accountId
+        self.accountInfo = accountInfo
+        
+    def connect(self) -> bool:
+        return True
+
     def placeTDAOrder(self) -> dict:
         return {}
 

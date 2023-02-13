@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from random import randint
+from src.models.user_model import User
 from src.utils.helper import Helper
 from src.models.enums import OrderStatus
 from src.models.enums import Side, TradeType
@@ -11,12 +12,15 @@ from src.services.database import Database
 from src.services.tda import TDA
 
 
-class Trader(TDA, Database):
+class Trader(Database):
 
-    def __init__(self) -> None:
+    def __init__(self, tda: TDA, user: User) -> None:
         super().__init__()
-
         self.tradeType: TradeType = TradeType.PAPER
+        self.tda = tda
+        self.user = user
+
+        print(f"Trader created for {self.tda.accountId}")
 
     def trade(self, orders: list) -> None:
         """starts the trading process.
@@ -63,7 +67,7 @@ class Trader(TDA, Database):
 
         orderId = None
         if self.tradeType == TradeType.LIVE:
-            resp = self.placeTDAOrder(order)
+            resp = self.tda.placeTDAOrder(order)
 
             if resp.status_code not in [200, 201]:
                 # TODO: Add to rejected orders database.
@@ -76,7 +80,7 @@ class Trader(TDA, Database):
             print(
                 f"{order.side} order sent to TDA")
         else:
-            resp = self.getQuote(order.symbol)
+            resp = self.tda.getQuote(order.symbol)
 
             order.price = float(resp[order.symbol]['lastPrice'])
 
@@ -113,7 +117,7 @@ class Trader(TDA, Database):
             #     })
             #     continue
 
-            specOrder = self.getSpecificOrder(orderId)
+            specOrder = self.tda.getSpecificOrder(orderId)
 
             if "error" in specOrder:
                 print(
