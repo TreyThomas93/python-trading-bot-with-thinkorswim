@@ -35,6 +35,8 @@ class Trader(Database):
         self.__checkOrderStatus()
 
         for order in orders:
+            order: Order = Order.marketOrder(
+                accountId=self.tda.accountId, symbol=order['symbol'], side=order['side'], strategy=order['strategy'])
             openPosition = self.getOpenPosition(order)
             queued = self.checkIfInQueue(order)
 

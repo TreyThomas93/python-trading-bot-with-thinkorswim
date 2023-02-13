@@ -6,7 +6,7 @@ from src.models.enums import *
 
 class Order:
 
-    def __init__(self, symbol: str, side: Side, strategy: str, orderStatus: OrderStatus = OrderStatus.WORKING, orderId: int = None, quantity: int = 1, price: float = 0.0) -> None:
+    def __init__(self, accountId: int, symbol: str, side: Side, strategy: str, orderStatus: OrderStatus = OrderStatus.WORKING, orderId: int = None, quantity: int = 1, price: float = 0.0) -> None:
         self.symbol: str = symbol
         self.side: str = Helper.getSideEnum(side)
         self.strategy: str = strategy
@@ -21,9 +21,12 @@ class Order:
         self.session = None
         self.duration = None
 
+        self.accountId = accountId
+
     @classmethod
-    def marketOrder(cls,  symbol: str, side: Side, strategy: str):
-        instance = cls(symbol=symbol, side=side, strategy=strategy)
+    def marketOrder(cls, accountId: int, symbol: str, side: Side, strategy: str):
+        instance = cls(accountId=accountId, symbol=symbol,
+                       side=side, strategy=strategy)
         instance.orderType: OrderType = OrderType.MARKET
         instance.assetType: str = AssetType.EQUITY
         instance.session: str = Session.NORMAL
@@ -43,12 +46,14 @@ class Order:
             "quantity": self.quantity,
             "dt": Helper.dateTimeToString(self.dt),
             "orderId": self.orderId,
-            'orderStatus': self.orderStatus.value if self.orderStatus != None else None
+            'orderStatus': self.orderStatus.value if self.orderStatus != None else None,
+            'accountId': self.accountId
         }
 
     @classmethod
     def fromJson(cls, order: dict):
         instance = cls(
+            accountId=order["accountId"],
             symbol=order["symbol"], side=order["side"], strategy=order["strategy"])
         instance.symbol = order["symbol"]
         instance.side = Helper.getSideEnum(order["side"])
@@ -62,6 +67,7 @@ class Order:
         instance.assetType = Helper.getAssetTypeEnum(order["assetType"])
         instance.session = Helper.getSessionEnum(order["session"])
         instance.duration = Helper.getDurationEnum(order["duration"])
+        instance.accountId = order["accountId"]
         return instance
 
     @property
@@ -92,5 +98,6 @@ class Order:
             quantity: {self.quantity},
             dt: {self.dt},
             orderId: {self.orderId},
-            orderStatus: {self.orderStatus}
+            orderStatus: {self.orderStatus},
+            accountId: {self.accountId}
         )"""

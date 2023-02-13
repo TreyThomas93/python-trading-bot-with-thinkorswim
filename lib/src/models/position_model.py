@@ -17,6 +17,7 @@ class Position:
         self.strategy: str = order.strategy
         self.assetType: AssetType = order.assetType
         self.quantity: int = order.quantity
+        self.accountId: int = order.accountId
 
         # Entry
         self.entryPrice: float = order.price
@@ -38,13 +39,14 @@ class Position:
             "entryPrice": self.entryPrice,
             "entryDate": Helper.dateTimeToString(self.entryDate),
             "exitDate": Helper.dateTimeToString(self.exitDate),
-            "exitPrice": self.exitPrice
+            "exitPrice": self.exitPrice,
+            "accountId": self.accountId
         }
 
     @classmethod
     def fromJson(cls, json: dict):
         instance = cls(
-            Order(symbol=json["symbol"], side=json["side"], strategy=json["strategy"]))
+            Order(accountId=json["accountId"], symbol=json["symbol"], side=json["side"], strategy=json["strategy"]))
         instance.orderId = json["orderId"]
         instance.tradeType = Helper.getTradeTypeEnum(json["tradeType"])
         instance.symbol = json["symbol"]
@@ -56,6 +58,7 @@ class Position:
         instance.entryDate = Helper.stringToDateTime(json["entryDate"])
         instance.exitDate = Helper.stringToDateTime(json["exitDate"])
         instance.exitPrice = json["exitPrice"]
+        instance.accountId = json["accountId"]
         return instance
 
     def __str__(self) -> str:
@@ -69,5 +72,6 @@ class Position:
             entryPrice: {self.entryPrice},
             entryDate: {self.entryDate},
             exitDate: {self.exitDate},
-            exitPrice: {self.exitPrice}
+            exitPrice: {self.exitPrice},
+            accountId: {self.accountId}
         )"""

@@ -11,7 +11,7 @@ class Gmail:
 
     def getEmails(self) -> list:
         extractedEmailData = ["Alert: New Symbol: ABC was added to REVA, SELL"]
-        orderObjects: list = []
+        tradeData: list = []
 
         for data in extractedEmailData:
             seperate = data.split(":")
@@ -28,8 +28,8 @@ class Gmail:
 
                         for symbol in symbols:
                             if strategy != "" and side != "":
-                                orderObjects.append(Order.marketOrder(symbol=symbol.strip(), side=side.replace(".", " ").upper().strip(), strategy=strategy.replace(
+                                tradeData.append({'symbol': symbol.strip(), 'side': side.replace(".", " ").upper().strip(), 'strategy': strategy.replace(
                                     ".", " ").upper().strip()
-                                ))
+                                })
 
-        return orderObjects
+        return tradeData
