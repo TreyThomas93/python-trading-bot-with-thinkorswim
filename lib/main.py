@@ -1,11 +1,12 @@
 
-from trader import Trader
+from src.trader import Trader
+from src.models.order_model import Order
 
 extractedEmailData = ["Alert: New Symbol: ABC was added to REVA, SELL"]
 
 if __name__ == "__main__":
 
-    tradeDataObjects = []
+    orderObjects: list = []
 
     for data in extractedEmailData:
         seperate = data.split(":")
@@ -22,11 +23,13 @@ if __name__ == "__main__":
 
                     for symbol in symbols:
                         if strategy != "" and side != "":
-                            tradeDataObjects.append({
-                                "symbol": symbol.strip(),
-                                "side": side.replace(".", " ").upper().strip(),
-                                "strategy": strategy.replace(
-                                    ".", " ").upper().strip(),
-                            })
+                            orderObjects.append(Order(
+                                {
+                                    "symbol": symbol.strip(),
+                                    "side": side.replace(".", " ").upper().strip(),
+                                    "strategy": strategy.replace(
+                                        ".", " ").upper().strip()
+                                }
+                            ))
 
-    Trader().trade(tradeDataObjects)
+    Trader().trade(orderObjects)
