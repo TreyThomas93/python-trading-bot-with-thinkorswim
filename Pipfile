@@ -9,6 +9,8 @@ autopep8 = "*"
 
 [packages]
 json-database = "*"
+pandas = "*"
+tabulate = "*"
 
 [requires]
 python_version = "3.10"
