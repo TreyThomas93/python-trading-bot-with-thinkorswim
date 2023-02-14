@@ -1,6 +1,7 @@
 
 
 from datetime import datetime
+from logging import Logger
 from random import randint
 from src.models.user_model import User
 from src.utils.helper import Helper
@@ -14,13 +15,14 @@ from src.services.tda import TDA
 
 class Trader(Database):
 
-    def __init__(self, tda: TDA, user: User) -> None:
+    def __init__(self, tda: TDA, user: User, logger: Logger) -> None:
         super().__init__()
         self.tradeType: TradeType = TradeType.PAPER
         self.tda = tda
         self.user = user
+        self.logger = logger
 
-        print(f"Trader created for {self.tda.accountId}")
+        self.logger.info(f"Trader created for {self.tda.accountId}")
 
     def trade(self, orders: list) -> None:
         """starts the trading process.
@@ -45,10 +47,12 @@ class Trader(Database):
 
             # If no open position found and side is BUY, then create order
             if openPosition == None and order.side == Side.BUY:
-                print(f"Creating buy order")
+                self.logger.info(
+                    f"Creating buy order for {order.symbol} - User: {self.user.name}")
             # If open position found and side is SELL, then create order
             elif openPosition != None and order.side == Side.SELL:
-                print(f"Creating sell order")
+                self.logger.info(
+                    f"Creating sell order for {order.symbol} - User: {self.user.name}")
             else:
                 continue
 
@@ -73,14 +77,15 @@ class Trader(Database):
 
             if resp.status_code not in [200, 201]:
                 # TODO: Add to rejected orders database.
-                print(f"Order {order.orderId} was rejected.")
+                self.logger.info(
+                    f"Order {order.orderId} was rejected for {order.symbol} - User: {self.user.name}")
                 return
 
             orderId = int(
                 (resp.headers["Location"]).split("/")[-1].strip())
 
-            print(
-                f"{order.side} order sent to TDA")
+            self.logger.info(
+                f"{order.side} order sent to TDA for {order.symbol} - User: {self.user.name} - OrderId: {orderId} - Quantity: {order.quantity} - Price: {order.price} ")
         else:
             resp = self.tda.getQuote(order.symbol)
 
@@ -122,7 +127,7 @@ class Trader(Database):
             specOrder = self.tda.getSpecificOrder(orderId)
 
             if "error" in specOrder:
-                print(
+                self.logger.info(
                     f"An error occured while fetching order {orderId}.")
                 continue
 
@@ -130,26 +135,30 @@ class Trader(Database):
 
             if orderId != specOrder["orderId"]:
                 # TODO: Add to rejected orders database.
-                print(f"Order {orderId} was not found.")
+                self.logger.info(
+                    f"Order {orderId} was not found. - User: {self.user.name}")
                 self.removeFromQueue(order)
                 continue
 
             # if status has not changed, then continue.
             if order.orderStatus == newStatus:
-                print('Order status has not changed.')
+                self.logger.info('Order status has not changed.')
                 continue
 
             match newStatus:
                 case OrderStatus.FILLED:
-                    print(f"Pushing order {orderId} to local database.")
+                    self.logger.info(
+                        f"Pushing order {orderId} to local database - User: {self.user.name}")
                     self.__pushOrder(order, specOrder)
                 case OrderStatus.REJECTED | OrderStatus.CANCELED:
                     # TODO: Add to rejected orders database.
-                    print(f"Order {orderId} was {newStatus}.")
+                    self.logger.info(
+                        f"Order {orderId} was {newStatus}. - User: {self.user.name}")
                     self.removeFromQueue(order)
                 case _:
                     # TODO: Update order status in local database.
-                    print(f"Order {orderId} is {newStatus}.")
+                    self.logger.info(
+                        f"Order {orderId} is {newStatus}. - User: {self.user.name}")
                     self.updateOrderStatus(order, newStatus)
 
     def __pushOrder(self, order: Order, specOrder: dict) -> None:
@@ -177,7 +186,8 @@ class Trader(Database):
             # Add position to local database
             self.addToOpenPositions(openPosition)
 
-            print(f"Added {symbol} to open positions")
+            self.logger.info(
+                f"Added {symbol} to open positions - User: {self.user.name}")
         ############################################################
         # If open position found, then remove from open positions database and add to closed positions database. [SELLING_POSITION]
         elif order.side == Side.SELL:
@@ -194,7 +204,8 @@ class Trader(Database):
             # Update position to local database
             self.addToClosedPositions(closedPosition)
 
-            print(f"Added {symbol} to closed positions")
+            self.logger.info(
+                f"Added {symbol} to closed positions - User: {self.user.name}")
 
         # remove from queued orders
         self.removeFromQueue(order)

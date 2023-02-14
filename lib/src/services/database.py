@@ -67,7 +67,6 @@ class Database:
             for pos in db:
                 if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy:
                     db.remove_item(i)
-                    print(f"Removed {order.symbol} from open positions")
                     break
                 i += 1
 
@@ -77,7 +76,6 @@ class Database:
             for pos in db:
                 if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy:
                     db.remove_item(i)
-                    print(f"Removed {order.symbol} from queue")
                     break
                 i += 1
 
@@ -88,6 +86,5 @@ class Database:
                 if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy:
                     pos['orderStatus'] = status.value
                     db.update_item(i, pos)
-                    print(f"Updated {order.symbol} status to {status}")
                     break
                 i += 1

@@ -1,8 +1,14 @@
 
 
+from random import randint
 from src.models.order_model import Order
 from src.trader import Trader
 
+sides = ["BUY", "SELL"]
+
+strategies = ['REVA', 'RSI_Swing', 'SMA_EMA']
+
+_symbols = ['ABC', 'DEF', 'GHI']
 
 class Gmail:
 
@@ -10,7 +16,8 @@ class Gmail:
         pass
 
     def getEmails(self) -> list:
-        extractedEmailData = ["Alert: New Symbol: ABC was added to REVA, SELL"]
+        extractedEmailData = [
+            f"Alert: New Symbol: {_symbols[randint(0, len(_symbols) - 1)]} was added to {strategies[randint(0, len(strategies) - 1)]}, {sides[randint(0, len(sides) - 1)]}"]
         tradeData: list = []
 
         for data in extractedEmailData:

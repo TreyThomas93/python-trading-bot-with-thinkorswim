@@ -33,6 +33,11 @@ class Main(Database):
         self.usersToTrade = {}
         self.usersNotConnected = []
 
+        self.logger.info(
+            "Starting Trading Bot...")
+
+        print("\n--------------------------------------------------\n")
+
     def setupUsers(self):
 
         users = self.getUsers()
@@ -41,7 +46,8 @@ class Main(Database):
             try:
                 for accountId in user.accounts.keys():
                     if accountId not in self.usersToTrade and accountId not in self.usersNotConnected:
-                        tda = TDA(int(accountId), user.accounts[accountId])
+                        tda = TDA(int(accountId),
+                                  user.accounts[accountId], self.logger)
                         connected = tda.connect()
 
                         if not connected:
@@ -50,8 +56,9 @@ class Main(Database):
                                 f"User {user.name} not connected to TDAmeritrade.")
                             continue
 
-                        self.usersToTrade[accountId] = Trader(tda, user)
-                        
+                        self.usersToTrade[accountId] = Trader(
+                            tda, user, self.logger)
+
                         self.logger.info(f"User {user.name} ready to trade.")
 
                         time.sleep(0.1)
@@ -64,7 +71,6 @@ class Main(Database):
 
         for user in self.usersToTrade:
             trader: Trader = self.usersToTrade[user]
-            self.logger.info(f"User {trader.user.name} trading...")
             trader.trade(orders)
 
 
@@ -85,4 +91,7 @@ if __name__ == "__main__":
     # ))
 
     # TODO run on a loop
-    main.runTrader()
+    while True:
+        main.runTrader()
+        time.sleep(1)
+        print("--------------------------------------------------")

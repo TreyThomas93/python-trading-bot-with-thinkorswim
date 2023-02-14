@@ -1,13 +1,15 @@
 
 
+from logging import Logger
 from random import randint
 
 
 class TDA:
 
-    def __init__(self, accountId: int, accountInfo: dict) -> None:
+    def __init__(self, accountId: int, accountInfo: dict, logger: Logger) -> None:
         self.accountId = accountId
         self.accountInfo = accountInfo
+        self.logger = logger
         
     def connect(self) -> bool:
         return True
