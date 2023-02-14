@@ -30,14 +30,10 @@ class Main(Database):
         self.logger.addHandler(file_handler)
         self.logger.addHandler(ch)
 
-        self.gmail = Gmail()
+        self.gmail = Gmail(self.logger)
+
         self.usersToTrade = {}
         self.usersNotConnected = []
-
-        self.logger.info(
-            "Starting Trading Bot...")
-
-        print("\n--------------------------------------------------\n")
 
     def setupUsers(self):
 
@@ -76,35 +72,42 @@ class Main(Database):
             trader: Trader = self.usersToTrade[user]
             trader.trade(orders)
 
+        if len(orders) > 0:
+            print("--------------------------------------------------")
+
 
 if __name__ == "__main__":
 
     main = Main()
 
-    main.setupUsers()
+    connected = main.gmail.connect()
 
-    # Database().addUser(User(
-    #     clientId=123456789,
-    #     accounts={
-    #         '123456789': 'ABC123',
-    #     },
-    #     name='John Doe',
-    #     username='jdoe123',
-    #     password='password123',
-    # ))
+    if connected:
 
-    # Database().addUser(User.fromJson({
-    #     "name": "Jane Doe",
-    #     "clientId": 123456789,
-    #     "username": "jdoe123",
-    #     "password": "password123",
-    #     "accounts": {
-    #             "123456789": {}
-    #     }
-    # }))
+        main.setupUsers()
 
-    # TODO run on a loop
-    while True:
-        main.runTrader()
-        time.sleep(1)
-        print("--------------------------------------------------")
+        main.logger.info(
+            "Starting Trading Bot...")
+
+        print("\n--------------------------------------------------\n")
+
+        # Database().addUser(User(
+        #     clientId=123456789,
+        #     accounts={
+        #         '123456789': 'ABC123',
+        #     },
+        #     name='John Doe',
+        # ))
+
+        # Database().addUser(User.fromJson({
+        #     "name": "Jane Doe",
+        #     "clientId": 123456789,
+        #     "accounts": {
+        #             "123456789": {}
+        #     }
+        # }))
+
+        # TODO run on a loop
+        while True:
+            main.runTrader()
+            time.sleep(5)
