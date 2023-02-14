@@ -12,7 +12,7 @@ class Order:
         self.strategy: str = strategy
         self.price: float = price
         self.quantity: int = quantity
-        self.dt: datetime = datetime.now()
+        self.dt: datetime = datetime.utcnow()
         self.orderId = orderId
         self.orderStatus = orderStatus
 

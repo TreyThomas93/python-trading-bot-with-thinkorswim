@@ -84,3 +84,8 @@ class Helper:
                 return Duration.GOOD_TILL_CANCEL
             case _:
                 return Duration.GOOD_TILL_CANCEL
+            
+    @staticmethod
+    @property
+    def utcNow() -> datetime:
+        return datetime.utcnow()

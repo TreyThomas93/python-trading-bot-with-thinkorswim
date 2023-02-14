@@ -10,7 +10,7 @@ class TDA:
         self.accountId = accountId
         self.accountInfo = accountInfo
         self.logger = logger
-        
+
     def connect(self) -> bool:
         return True
 
@@ -18,11 +18,11 @@ class TDA:
         return {}
 
     def getQuote(self, symbol: str) -> dict:
-        return {symbol: {"lastPrice": randint(1.00, 101.00)}}
+        return {symbol: {"lastPrice": randint(1.00, 100.00)}}
 
     def getSpecificOrder(self, orderId: int) -> dict:
         return {
             'orderId': orderId,
             'status': 'FILLED',
-            'price': randint(1.00, 101.00),
+            'price': randint(1.00, 100.00),
         }

@@ -21,7 +21,7 @@ class Position:
 
         # Entry
         self.entryPrice: float = order.price
-        self.entryDate: datetime = datetime.now()
+        self.entryDate: datetime = datetime.utcnow()
 
         # Exit
         self.exitDate: float = None

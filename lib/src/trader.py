@@ -194,7 +194,7 @@ class Trader(Database):
 
             closedPosition = self.getOpenPosition(order)
             closedPosition.exitPrice = order.price
-            closedPosition.exitDate = datetime.now()
+            closedPosition.exitDate = datetime.utcnow()
             closedPosition.orderId = order.orderId
             closedPosition.tradeType = self.tradeType
 
