@@ -37,26 +37,30 @@ class Trader(Database):
         self.__checkOrderStatus()
 
         for order in orders:
-            order: Order = Order.marketOrder(
-                accountId=self.tda.accountId, symbol=order['symbol'], side=order['side'], strategy=order['strategy'])
-            openPosition = self.getOpenPosition(order)
-            queued = self.checkIfInQueue(order)
+            try:
+                order: Order = Order.marketOrder(
+                    accountId=self.tda.accountId, symbol=order['symbol'], side=order['side'], strategy=order['strategy'])
+                openPosition = self.getOpenPosition(order)
+                queued = self.checkIfInQueue(order)
 
-            if queued:
-                continue
+                if queued:
+                    continue
 
-            # If no open position found and side is BUY, then create order
-            if openPosition == None and order.side == Side.BUY:
-                self.logger.info(
-                    f"Creating buy order for {order.symbol} - User: {self.user.name}")
-            # If open position found and side is SELL, then create order
-            elif openPosition != None and order.side == Side.SELL:
-                self.logger.info(
-                    f"Creating sell order for {order.symbol} - User: {self.user.name}")
-            else:
-                continue
+                # If no open position found and side is BUY, then create order
+                if openPosition == None and order.side == Side.BUY:
+                    self.logger.info(
+                        f"Creating buy order for {order.symbol} - User: {self.user.name}")
+                # If open position found and side is SELL, then create order
+                elif openPosition != None and order.side == Side.SELL:
+                    self.logger.info(
+                        f"Creating sell order for {order.symbol} - User: {self.user.name}")
+                else:
+                    continue
 
-            self.__sendOrder(order)
+                self.__sendOrder(order)
+            except Exception as e:
+                self.logger.error(
+                    f"Error creating order for {order.symbol} - User: {self.user.name}: {e}")
 
     def __sendOrder(self, order: Order) -> None:
         """Send order to TDAmeritrade if live, or to local database if paper.

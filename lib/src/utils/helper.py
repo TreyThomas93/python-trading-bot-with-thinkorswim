@@ -84,8 +84,12 @@ class Helper:
                 return Duration.GOOD_TILL_CANCEL
             case _:
                 return Duration.GOOD_TILL_CANCEL
-            
+
     @staticmethod
     @property
     def utcNow() -> datetime:
         return datetime.utcnow()
+
+    @staticmethod
+    def modifiedAccountID(account_id):
+        return '*' * (len(str(account_id)) - 4) + str(account_id)[-4:]
