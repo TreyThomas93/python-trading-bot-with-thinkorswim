@@ -4,6 +4,7 @@ from logging import Formatter
 import logging
 import os
 import time
+from src.utils.helper import Helper
 from src.utils.multifilehandler import MultiFileHandler
 from src.services.tda import TDA
 from src.models.user_model import User
@@ -53,18 +54,20 @@ class Main(Database):
                         if not connected:
                             self.usersNotConnected.append(accountId)
                             self.logger.info(
-                                f"User {user.name} not connected to TDAmeritrade.")
+                                f"User {user.name} not connected to TDAmeritrade.  - Account ID: {Helper.modifiedAccountID(accountId)}")
                             continue
 
                         self.usersToTrade[accountId] = Trader(
                             tda, user, self.logger)
 
-                        self.logger.info(f"User {user.name} ready to trade.")
+                        self.logger.info(
+                            f"User {user.name} ready to trade. - Account ID: {Helper.modifiedAccountID(accountId)}")
 
                         time.sleep(0.1)
 
             except Exception as e:
-                self.logger.error(f"Error setting up user {user.name}: {e}")
+                self.logger.error(
+                    f"Error setting up user {user.name}  - Account ID: {Helper.modifiedAccountID(accountId)}: {e}")
 
     def runTrader(self):
         orders = self.gmail.getEmails()
@@ -89,7 +92,7 @@ if __name__ == "__main__":
     #     username='jdoe123',
     #     password='password123',
     # ))
-    
+
     # Database().addUser(User.fromJson({
     #     "name": "Jane Doe",
     #     "clientId": 123456789,
