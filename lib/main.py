@@ -89,6 +89,16 @@ if __name__ == "__main__":
     #     username='jdoe123',
     #     password='password123',
     # ))
+    
+    # Database().addUser(User.fromJson({
+    #     "name": "Jane Doe",
+    #     "clientId": 123456789,
+    #     "username": "jdoe123",
+    #     "password": "password123",
+    #     "accounts": {
+    #             "123456789": {}
+    #     }
+    # }))
 
     # TODO run on a loop
     while True:

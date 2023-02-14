@@ -108,7 +108,7 @@ class Trader(Database):
         """
 
         # TODO: Get all queued orders from local database.
-        queued_orders = self.getQueuedOrders()
+        queued_orders = self.getQueuedOrders(accountId=self.tda.accountId)
 
         # TODO: iterate over all queued orders and check TDA for order status.
         for order in queued_orders:

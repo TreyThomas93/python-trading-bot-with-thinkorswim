@@ -43,21 +43,22 @@ class Database:
         with JsonDatabase(self.openPositionsDB, f'{self.path}/{self.openPositionsDB}.conf') as db:
             for position in db:
                 position: dict = position
-                if position["symbol"] == order.symbol and position["strategy"] == order.strategy:
+                if position["symbol"] == order.symbol and position["strategy"] == order.strategy and position["accountId"] == order.accountId:
                     return Position.fromJson(position)
         return None
 
-    def getQueuedOrders(self) -> list:
+    def getQueuedOrders(self, accountId: int) -> list:
         queuedOrders = []
         with JsonDatabase(self.queuedOrdersDB, f'{self.path}/{self.queuedOrdersDB}.conf') as db:
             for position in db:
-                queuedOrders.append(position)
+                if position["accountId"] == accountId:
+                     queuedOrders.append(position)
         return queuedOrders
 
     def checkIfInQueue(self, order: Order) -> bool:
         with JsonDatabase(self.queuedOrdersDB, f'{self.path}/{self.queuedOrdersDB}.conf') as db:
             for queuedOrder in db:
-                if queuedOrder["symbol"] == order.symbol and queuedOrder["strategy"] == order.strategy:
+                if queuedOrder["symbol"] == order.symbol and queuedOrder["strategy"] == order.strategy and queuedOrder["accountId"] == order.accountId:
                     return True
         return False
 
@@ -65,7 +66,7 @@ class Database:
         with JsonDatabase(self.openPositionsDB, f'{self.path}/{self.openPositionsDB}.conf') as db:
             i: int = 0
             for pos in db:
-                if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy:
+                if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy and pos["accountId"] == order.accountId:
                     db.remove_item(i)
                     break
                 i += 1
@@ -74,7 +75,7 @@ class Database:
         with JsonDatabase(self.queuedOrdersDB, f'{self.path}/{self.queuedOrdersDB}.conf') as db:
             i: int = 0
             for pos in db:
-                if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy:
+                if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy and pos["accountId"] == order.accountId:
                     db.remove_item(i)
                     break
                 i += 1
@@ -83,7 +84,7 @@ class Database:
         with JsonDatabase(self.queuedOrdersDB, f'{self.path}/{self.queuedOrdersDB}.conf') as db:
             i: int = 0
             for pos in db:
-                if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy:
+                if pos["symbol"] == order.symbol and pos["strategy"] == order.strategy and pos["accountId"] == order.accountId:
                     pos['orderStatus'] = status.value
                     db.update_item(i, pos)
                     break
