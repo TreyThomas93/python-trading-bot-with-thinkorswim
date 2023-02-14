@@ -8,8 +8,8 @@ from tabulate import tabulate
 View results of strategies based on closed positions.
 
 Values include:
-    - count: number of positions
-    - profitLoss: total profit/loss of positions
+    - count: number of closed positions for strategy
+    - profitLoss: total profit/loss of closed positions for strategy
 """
 
 closedPositions = []
