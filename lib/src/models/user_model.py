@@ -2,7 +2,7 @@
 
 class User:
 
-    def __init__(self, name: str, clientId: str, username: str, password: str, accounts: dict):
+    def __init__(self, name: str, clientId: str, accounts: dict):
         self.name = name
         self.clientId = clientId
         self.accounts = accounts

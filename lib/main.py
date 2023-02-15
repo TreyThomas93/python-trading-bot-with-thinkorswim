@@ -44,13 +44,11 @@ class Main(Database):
                 for accountId in user.accounts.keys():
                     if accountId not in self.usersToTrade and accountId not in self.usersNotConnected:
                         tda = TDA(int(accountId),
-                                  user.accounts[accountId], self.logger)
+                                  user.accounts[accountId], self.logger, user)
                         connected = tda.connect()
 
                         if not connected:
                             self.usersNotConnected.append(accountId)
-                            self.logger.info(
-                                f"User {user.name} not connected to TDAmeritrade.  - Account ID: {Helper.modifiedAccountID(accountId)}")
                             continue
 
                         self.usersToTrade[accountId] = Trader(
@@ -78,6 +76,25 @@ class Main(Database):
 
 if __name__ == "__main__":
 
+    # Database().addUser(User(
+    #     clientId=123456789,
+    #     accounts={
+    #         '123456789': 'ABC123',
+    #     },
+    #     name='John Doe',
+    # ))
+
+    # Database().addUser(User.fromJson({
+    #     "name": "John Doe",
+    #     "clientId": 'J45FF8V8435THD',
+    #     "accounts": {
+    #         "270702845":
+    #                 {'access_token': 'jsdkgsjkdfgjkjdk', 'scope': 'PlaceTrades AccountAccess MoveMoney',
+    #                     'expires_in': 1800, 'refresh_token_expires_in': 7776000, 'token_type': 'Bearer'}
+
+    #     }
+    # }))
+
     main = Main()
 
     connected = main.gmail.connect()
@@ -86,26 +103,14 @@ if __name__ == "__main__":
 
         main.setupUsers()
 
+        if len(main.usersToTrade) == 0:
+            main.logger.info("No users to trade. Exiting...")
+            exit()
+
         main.logger.info(
             "Starting Trading Bot...")
 
         print("\n--------------------------------------------------\n")
-
-        # Database().addUser(User(
-        #     clientId=123456789,
-        #     accounts={
-        #         '123456789': 'ABC123',
-        #     },
-        #     name='John Doe',
-        # ))
-
-        # Database().addUser(User.fromJson({
-        #     "name": "Jane Doe",
-        #     "clientId": 123456789,
-        #     "accounts": {
-        #             "123456789": {}
-        #     }
-        # }))
 
         # TODO run on a loop
         while True:

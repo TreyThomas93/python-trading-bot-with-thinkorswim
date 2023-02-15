@@ -52,7 +52,7 @@ class Database:
         with JsonDatabase(self.queuedOrdersDB, f'{self.path}/{self.queuedOrdersDB}.conf') as db:
             for position in db:
                 if position["accountId"] == accountId:
-                     queuedOrders.append(position)
+                    queuedOrders.append(position)
         return queuedOrders
 
     def checkIfInQueue(self, order: Order) -> bool:
@@ -88,4 +88,14 @@ class Database:
                     pos['orderStatus'] = status.value
                     db.update_item(i, pos)
                     break
+                i += 1
+
+    def updateUserAccountInfo(self, accountId: int, user: User) -> None:
+        with JsonDatabase(self.usersDB, f'{self.path}/{self.usersDB}.conf') as db:
+            i: int = 0
+            for u in db:
+                for i in u['accounts'].keys():
+                    if int(i) == accountId:
+                        db.update_item(i, user.toJson())
+                        break
                 i += 1
