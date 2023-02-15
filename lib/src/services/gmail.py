@@ -13,12 +13,6 @@ from google.oauth2.credentials import Credentials
 THIS_FOLDER = os.path.dirname(os.path.abspath(
     __file__)).replace("services", "utils")
 
-sides = ["BUY", "SELL"]
-
-strategies = ['REVA', 'RSI_Swing', 'SMA_EMA']
-
-_symbols = ['ABC', 'DEF', 'GHI']
-
 
 class Gmail:
 
@@ -68,8 +62,6 @@ class Gmail:
             return False
 
     def getEmails(self) -> list:
-        # extractedEmailData = [
-        #     f"Alert: New Symbol: {_symbols[randint(0, len(_symbols) - 1)]} was added to {strategies[randint(0, len(strategies) - 1)]}, {sides[randint(0, len(sides) - 1)]}"]
 
         # GETS LIST OF ALL EMAILS
         results = self.service.users().messages().list(userId='me').execute()
@@ -93,8 +85,8 @@ class Gmail:
                     self.service.users().messages().trash(
                         userId='me', id=message["id"]).execute()
 
-                    print(
-                        f'Moved email to trash. {index + 1}/{len(results["messages"])}')
+                    # print(
+                    #     f'Moved email to trash. {index + 1}/{len(results["messages"])}')
 
         tradeData: list = []
 

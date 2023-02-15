@@ -54,7 +54,7 @@ class TDA(Database):
 
         # CHECK IF ACCESS TOKEN NEEDS UPDATED
         age_sec = round(
-            time.time() - accountInfo.get('created_at', time.time()))
+            time.time() - accountInfo.get('created_at', 0))
 
         if age_sec >= accountInfo['expires_in'] - 60:
 
@@ -96,15 +96,14 @@ class TDA(Database):
                 accountInfo, refresh_type="Refresh Token")
 
             if token:
-
                 self.user.accounts[str(
                     self.accountId)]['refresh_token'] = token['refresh_token']
                 self.user.accounts[str(self.accountId)]['refresh_exp_date'] = (datetime.now().replace(
                     microsecond=0) + timedelta(days=90)).strftime("%Y-%m-%d")
                 self.updateUserAccountInfo(self.accountId, self.user)
-
                 self.header.update({
                     "Authorization": f"Bearer {token['access_token']}"})
+
             else:
                 return False
 
@@ -156,11 +155,35 @@ class TDA(Database):
 
         return resp.json()
 
+    def __sendRequest(self, url, method="GET", data=None):
+        isValid = self.__checkTokenValidity()
+
+        if isValid:
+            match method:
+                case "GET":
+                    resp = requests.get(url, headers=self.header)
+                    return resp.json()
+                case "POST":
+                    resp = requests.post(url, headers=self.header, json=data)
+                    return resp
+                case "DELETE":
+                    resp = requests.delete(url, headers=self.header)
+                    return resp
+                case "PUT":
+                    resp = requests.put(url, headers=self.header, json=data)
+                    return resp
+                case _:
+                    raise Exception("Invalid Method")
+
+        else:
+            raise Exception("Invalid Token")
+
     def placeTDAOrder(self) -> dict:
         return {}
 
     def getQuote(self, symbol: str) -> dict:
-        return {symbol: {"lastPrice": randint(1.00, 100.00)}}
+        url = f"https://api.tdameritrade.com/v1/marketdata/{symbol}/quotes"
+        return self.__sendRequest(url)
 
     def getSpecificOrder(self, orderId: int) -> dict:
         return {

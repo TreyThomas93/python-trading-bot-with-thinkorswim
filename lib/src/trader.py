@@ -17,13 +17,14 @@ class Trader(Database):
 
     def __init__(self, tda: TDA, user: User, logger: Logger) -> None:
         super().__init__()
+        # set to [TradeType.LIVE] if you want to trade live
         self.tradeType: TradeType = TradeType.PAPER
         self.tda = tda
         self.user = user
         self.logger = logger
 
         self.logger.info(
-            f"Trader created for {Helper.modifiedAccountID(self.tda.accountId)} - User: {self.user.name}")
+            f"Trading session created for {Helper.modifiedAccountID(self.tda.accountId)} - User: {self.user.name}")
 
     def trade(self, orders: list) -> None:
         """starts the trading process.
@@ -124,12 +125,11 @@ class Trader(Database):
 
                 orderId = order.orderId
 
-                # TODO uncomment this for paper trading
-                # if self.tradeType == TradeType.PAPER:
-                #     self.__pushOrder(order, {
-                #         "price": order.price
-                #     })
-                #     continue
+                if self.tradeType == TradeType.PAPER:
+                    self.__pushOrder(order, {
+                        "price": order.price
+                    })
+                    continue
 
                 specOrder = self.tda.getSpecificOrder(orderId)
 

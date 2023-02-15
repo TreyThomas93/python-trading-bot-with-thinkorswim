@@ -94,8 +94,8 @@ class Database:
         with JsonDatabase(self.usersDB, f'{self.path}/{self.usersDB}.conf') as db:
             i: int = 0
             for u in db:
-                for i in u['accounts'].keys():
-                    if int(i) == accountId:
+                for id in u['accounts'].keys():
+                    if int(id) == accountId:
                         db.update_item(i, user.toJson())
                         break
                 i += 1

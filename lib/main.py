@@ -55,7 +55,7 @@ class Main(Database):
                             tda, user, self.logger)
 
                         self.logger.info(
-                            f"User {user.name} ready to trade. - Account ID: {Helper.modifiedAccountID(accountId)}")
+                            f"User {user.name} ready to trade. - Account ID: {Helper.modifiedAccountID(accountId)}\n")
 
                         time.sleep(0.1)
 
