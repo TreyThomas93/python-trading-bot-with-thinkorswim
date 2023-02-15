@@ -93,7 +93,6 @@ if __name__ == "__main__":
 
         print("\n--------------------------------------------------\n")
 
-        # TODO run on a loop
         while True:
             main.runTrader()
             time.sleep(5)
