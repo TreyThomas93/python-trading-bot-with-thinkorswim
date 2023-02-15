@@ -1,4 +1,42 @@
 
+"""
+This script allows the user to fetch [access] and [refresh] tokens for their TDAmeritrade account.
+Running this script will open a browser window and will auto login the user to their TDAmeritrade account.
+From there, the user will receive a code via text message and will need to enter that code into the browser window.
+The user can also answer a security question instead of inputting a code.
+Once completed, the browser window will close and the token data will be included in the response from the server.
+If the user is not found in the [users.conf] file, they will be added to the file with the token data for the specified account.
+Else if they are found in the [users.conf] file, the token data for the specified account will be updated.
+
+A creds.env file is required in the same directory as this script.
+Add the following to the creds.env file:
+NAME=Your Name
+CLIENT_ID=Your Client ID
+TDA_USERNAME=Your Username
+TDA_PASSWORD=Your Password
+ACCOUNT_ID=Your Account ID
+
+Name is the name you want associated with the user object for this account.
+Client id is the consumer key that you get from the [https://developer.tdameritrade.com/] website after creating an app.
+Username and password are your TDAmeritrade username and password for the account you want to use.
+Account id is the account id for the account you want to use.
+
+Once the creds.env file is created and the variables are added, run this script and follow the instructions in the browser window.
+
+The response from the server will look like this:
+{
+    "access_token": "+jDDAaqtpkogBqzg4RZn6RE7oCsmEvDkR5FoXQy+........",
+    "refresh_token": "YVLe43c/X2jSZwgMblQBWnBc0W2MuELQ0suh+AVO..........",
+    "scope": "PlaceTrades AccountAccess MoveMoney",
+    "expires_in": 1800,
+    "refresh_token_expires_in": 7776000,
+    "token_type": "Bearer",
+}
+
+The access token will expire in 30 minutes. The refresh token will expire in 90 days. The refresh token will be used to get a new access token when the access token expires.
+
+**You are allowed to have multiple accounts per user. To add another account, replace the username/password and account id in the creds.env file and run this script again.**
+"""
 
 from datetime import datetime, timedelta
 import os
