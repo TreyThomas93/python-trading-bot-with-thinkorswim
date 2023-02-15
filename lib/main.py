@@ -76,25 +76,6 @@ class Main(Database):
 
 if __name__ == "__main__":
 
-    # Database().addUser(User(
-    #     clientId=123456789,
-    #     accounts={
-    #         '123456789': 'ABC123',
-    #     },
-    #     name='John Doe',
-    # ))
-
-    # Database().addUser(User.fromJson({
-    #     "name": "John Doe",
-    #     "clientId": 'J45FF8V8435THD',
-    #     "accounts": {
-    #         "23465":
-    #                 {'access_token': 'jsdkgsjkdfgjkjdk', 'scope': 'PlaceTrades AccountAccess MoveMoney',
-    #                     'expires_in': 1800, 'refresh_token_expires_in': 7776000, 'token_type': 'Bearer'}
-
-    #     }
-    # }))
-
     main = Main()
 
     connected = main.gmail.connect()
