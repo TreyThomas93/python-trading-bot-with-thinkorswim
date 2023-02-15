@@ -19,8 +19,17 @@ from user_model import User
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 path = Path(THIS_FOLDER)
-# load_dotenv(dotenv_path=f"{path.parent}/creds.env")
-load_dotenv(dotenv_path=f"{path}/creds.env", verbose=True)
+
+path_to_creds = f'{path}/creds.env'
+
+if not os.path.exists(path_to_creds):
+    f = open(path_to_creds, 'x')
+    f.close()
+
+env_loaded = load_dotenv(dotenv_path=path_to_creds, verbose=True)
+
+if not env_loaded:
+    raise Exception('No env variables found. Please add the following to the creds.env file in this directory: \nNAME=Your Name\nCLIENT_ID=Your Client ID\nTDA_USERNAME=Your Username\nTDA_PASSWORD=Your Password\nACCOUNT_ID=Your Account ID\n')
 
 
 class TDATokens:
@@ -103,7 +112,7 @@ class TDATokens:
 
 tokens = TDATokens()
 
-tokens.fetchTokenData(name='Trey Thomas',
+tokens.fetchTokenData(name=os.getenv('NAME'),
                       clientId=os.getenv('CLIENT_ID'),
                       username=os.getenv('TDA_USERNAME'),
                       password=os.getenv('TDA_PASSWORD'),
