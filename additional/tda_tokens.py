@@ -45,6 +45,7 @@ from dotenv import load_dotenv
 from json_database import JsonDatabase
 import requests
 import time
+from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 import urllib.parse as up
@@ -74,13 +75,14 @@ class TDATokens:
 
     def fetchTokenData(self, clientId: str, username: str, password: str, name: str, accountId: str):
         try:
-            driver = webdriver.Chrome(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=Service(
+                ChromeDriverManager().install()))
             client_id = clientId + '@AMER.OAUTHAP'
 
             url = 'https://auth.tdameritrade.com/auth?response_type=code&redirect_uri=' + \
                 up.quote("http://localhost:8080") + \
                 '&client_id=' + up.quote(client_id)
-
+ 
             driver.get(url)
             driver.implicitly_wait(5)
 
@@ -143,6 +145,7 @@ class TDATokens:
                 else:
                     print('User found in database. Updating...')
                     user.accounts[accountId] = data
+                    db.add_item(user.toJson())
 
         except Exception:
             print(traceback.format_exc())
