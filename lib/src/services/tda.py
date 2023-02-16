@@ -190,7 +190,7 @@ class TDA(Database):
     def getAccountInfo(self):
         fields = up.quote("positions,orders")
         url = f"{self.baseUrl}/accounts/{self.accountId}?fields={fields}"
-        return self.sendRequest(url)
+        return self.__sendRequest(url)
 
     def placeTDAOrder(self, data: dict) -> dict:
         url = f"{self.baseUrl}/accounts/{self.accountId}/orders"
@@ -205,10 +205,10 @@ class TDA(Database):
         return self.__sendRequest(url)
 
     def getAvailableBalance(self):
-        account = self.getAccount()
+        account = self.getAccountInfo()
         balance = account["securitiesAccount"]["initialBalances"]["cashAvailableForTrading"]
         return float(balance)
 
     def cancelOrder(self, orderId: int):
         url = f"{self.baseUrl}/accounts/{self.accountId}/orders/{orderId}"
-        return self.sendRequest(url, method=Method.DELETE)
+        return self.__sendRequest(url, method=Method.DELETE)
