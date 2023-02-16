@@ -13,6 +13,18 @@ from google.oauth2.credentials import Credentials
 THIS_FOLDER = os.path.dirname(os.path.abspath(
     __file__)).replace("services", "utils")
 
+"""
+Connects to the Gmail API to fetch emails and then remove them from the inbox.
+
+Follow this link https://developers.google.com/gmail/api/quickstart/python to setup the credentials.json file.
+Then store the credentials.json file in the gmail_credentials folder.
+When you run the program for the first time, a browser window will open and you will be asked to login to your gmail account.
+Once you login, you will be asked to allow the program to access your gmail account.
+Once you allow the program to access your gmail account, a token.json file will be created in the gmail_credentials folder.
+
+You are now ready to use the gmail api.
+"""
+
 
 class Gmail:
 
