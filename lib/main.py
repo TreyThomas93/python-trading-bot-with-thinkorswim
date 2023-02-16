@@ -76,6 +76,17 @@ class Main(Database):
 
 if __name__ == "__main__":
 
+    """
+    This program is a trading bot that trades based on emails sent to a gmail account.
+    The emails sent to the gmail account are alerts that are sent from Thinkorswim.
+    Alerts are sent when scanners within TOS find a stock that meets a strategies criteria to either buy or sell.
+
+    Only LONG positions are allowed by default. You are able to modify the code to allow for SHORT positions.
+    By default, paper trading is enabled. You are able to enable live trading if you wish. Good practice would be to run the bot in paper trading mode for a while to make sure it is working correctly.
+
+    WARNING: This bot is not perfect. It is a work in progress. There are many things that can go wrong. I am not responsible for any losses you may incur. Use at your own risk.
+    """
+
     main = Main()
 
     connected = main.gmail.connect()
