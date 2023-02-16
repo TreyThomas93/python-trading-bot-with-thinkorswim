@@ -79,7 +79,7 @@ class Trader(Database):
 
         orderId = None
         if self.tradeType == TradeType.LIVE:
-            resp = self.tda.placeTDAOrder(order)
+            resp = self.tda.placeTDAOrder(order.marketOrderBracket)
 
             if resp.status_code not in [200, 201]:
                 # TODO: Add to rejected orders database.
@@ -98,7 +98,7 @@ class Trader(Database):
             order.price = float(resp[order.symbol]['lastPrice'])
 
             # generate random order id for paper trading.
-            orderId = -1*randint(100_000_000, 999_999_999)
+            orderId = -1 * randint(100_000_000, 999_999_999)
 
         order.orderId = orderId
 
@@ -113,10 +113,8 @@ class Trader(Database):
             None
         """
 
-        # TODO: Get all queued orders from local database.
         queued_orders = self.getQueuedOrders(accountId=self.tda.accountId)
 
-        # TODO: iterate over all queued orders and check TDA for order status.
         for order in queued_orders:
 
             try:
@@ -164,7 +162,6 @@ class Trader(Database):
                             f"Order {orderId} was {newStatus}. - User: {self.user.name} - Account ID: {Helper.modifiedAccountID(self.tda.accountId)}")
                         self.removeFromQueue(order)
                     case _:
-                        # TODO: Update order status in local database.
                         self.logger.info(
                             f"Order {orderId} is {newStatus}. - User: {self.user.name} - Account ID: {Helper.modifiedAccountID(self.tda.accountId)}")
                         self.updateOrderStatus(order, newStatus)

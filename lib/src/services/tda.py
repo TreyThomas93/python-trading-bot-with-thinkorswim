@@ -1,6 +1,7 @@
 
 
 from datetime import datetime, timedelta
+from enum import Enum
 from logging import Logger
 from random import randint
 import time
@@ -8,6 +9,13 @@ from src.services.database import Database
 from src.models.user_model import User
 from src.utils.helper import Helper
 import requests
+
+
+class Method(Enum):
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
 
 
 class TDA(Database):
@@ -155,39 +163,36 @@ class TDA(Database):
 
         return resp.json()
 
-    def __sendRequest(self, url, method="GET", data=None):
+    def __sendRequest(self, url, method: Method = Method.GET, data=None):
         isValid = self.__checkTokenValidity()
 
         if isValid:
             match method:
-                case "GET":
+                case Method.GET:
                     resp = requests.get(url, headers=self.header)
                     return resp.json()
-                case "POST":
+                case Method.POST:
                     resp = requests.post(url, headers=self.header, json=data)
                     return resp
-                case "DELETE":
+                case Method.DELETE:
                     resp = requests.delete(url, headers=self.header)
                     return resp
-                case "PUT":
+                case Method.PUT:
                     resp = requests.put(url, headers=self.header, json=data)
                     return resp
                 case _:
                     raise Exception("Invalid Method")
-
         else:
             raise Exception("Invalid Token")
 
-    def placeTDAOrder(self) -> dict:
-        return {}
+    def placeTDAOrder(self, data: dict) -> dict:
+        url = f"https://api.tdameritrade.com/v1/accounts/{self.accountId}/orders"
+        return self.__sendRequest(url, method=Method.POST, data=data)
 
     def getQuote(self, symbol: str) -> dict:
         url = f"https://api.tdameritrade.com/v1/marketdata/{symbol}/quotes"
         return self.__sendRequest(url)
 
     def getSpecificOrder(self, orderId: int) -> dict:
-        return {
-            'orderId': orderId,
-            'status': 'FILLED',
-            'price': randint(1.00, 100.00),
-        }
+        url = f"https://api.tdameritrade.com/v1/accounts/{self.accountId}/orders/{orderId}"
+        return self.__sendRequest(url)
