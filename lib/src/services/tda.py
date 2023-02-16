@@ -10,6 +10,12 @@ from src.utils.helper import Helper
 import requests
 import urllib.parse as up
 
+"""
+Connects to TDAmeritrade API.
+
+Use the tda_tokens.py file located in the additional folder in the root directory to get your tokens.
+"""
+
 
 class Method(Enum):
     GET = "GET"
