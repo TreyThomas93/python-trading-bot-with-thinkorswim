@@ -125,7 +125,7 @@ class TDA(Database):
 
         return True
 
-    def __getNewTokens(self, accountInfo, refresh_type="Access Token"):
+    def __getNewTokens(self, accountInfo, refresh_type="Access Token") -> dict | None:
         """ Gets new tokens from TDAmeritrade
         Args:
             token ([dict]): TOKEN DATA (ACCESS TOKEN, REFRESH TOKEN, EXP DATES)

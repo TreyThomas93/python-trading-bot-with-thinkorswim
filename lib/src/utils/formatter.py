@@ -19,3 +19,7 @@ class Formatter(logging.Formatter):
                 s = dt.isoformat()
 
         return s
+
+    def formatMessage(self, record: logging.LogRecord) -> str:
+        # print(record.levelname)
+        return super().formatMessage(record)
