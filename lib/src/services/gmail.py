@@ -21,8 +21,8 @@ class Gmail:
         self.SCOPES: list = ["https://mail.google.com/"]
         self.credentials: Credentials = None
         self.service = None
-        self.tokenFile: str = f"{THIS_FOLDER}/credentials/token.json"
-        self.credentialsFile: str = f"{THIS_FOLDER}/credentials/credentials.json"
+        self.tokenFile: str = f"{THIS_FOLDER}/gmail_credentials/token.json"
+        self.credentialsFile: str = f"{THIS_FOLDER}/gmail_credentials/credentials.json"
 
     def connect(self) -> bool:
         try:
