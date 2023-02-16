@@ -3,12 +3,12 @@
 from datetime import datetime, timedelta
 from enum import Enum
 from logging import Logger
-from random import randint
 import time
 from src.services.database import Database
 from src.models.user_model import User
 from src.utils.helper import Helper
 import requests
+import urllib.parse as up
 
 
 class Method(Enum):
@@ -30,6 +30,8 @@ class TDA(Database):
         self.terminate = False
 
         self.header = {}
+
+        self.baseUrl = "https://api.tdameritrade.com/v1"
 
         super().__init__()
 
@@ -138,7 +140,7 @@ class TDA(Database):
 
         # print(f"REFRESHING TOKEN: {data} - TRADER: {self.user['Name']} - REFRESH TYPE: {refresh_type} - ACCOUNT ID: {self.accountId}")
 
-        resp = requests.post('https://api.tdameritrade.com/v1/oauth2/token',
+        resp = requests.post(f'{self.baseUrl}/oauth2/token',
                              headers={
                                  'Content-Type': 'application/x-www-form-urlencoded'},
                              data=data)
@@ -185,14 +187,28 @@ class TDA(Database):
         else:
             raise Exception("Invalid Token")
 
+    def getAccountInfo(self):
+        fields = up.quote("positions,orders")
+        url = f"{self.baseUrl}/accounts/{self.accountId}?fields={fields}"
+        return self.sendRequest(url)
+
     def placeTDAOrder(self, data: dict) -> dict:
-        url = f"https://api.tdameritrade.com/v1/accounts/{self.accountId}/orders"
+        url = f"{self.baseUrl}/accounts/{self.accountId}/orders"
         return self.__sendRequest(url, method=Method.POST, data=data)
 
     def getQuote(self, symbol: str) -> dict:
-        url = f"https://api.tdameritrade.com/v1/marketdata/{symbol}/quotes"
+        url = f"{self.baseUrl}/marketdata/{symbol}/quotes"
         return self.__sendRequest(url)
 
     def getSpecificOrder(self, orderId: int) -> dict:
-        url = f"https://api.tdameritrade.com/v1/accounts/{self.accountId}/orders/{orderId}"
+        url = f"{self.baseUrl}/accounts/{self.accountId}/orders/{orderId}"
         return self.__sendRequest(url)
+
+    def getAvailableBalance(self):
+        account = self.getAccount()
+        balance = account["securitiesAccount"]["initialBalances"]["cashAvailableForTrading"]
+        return float(balance)
+
+    def cancelOrder(self, orderId: int):
+        url = f"{self.baseUrl}/accounts/{self.accountId}/orders/{orderId}"
+        return self.sendRequest(url, method=Method.DELETE)
