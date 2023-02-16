@@ -43,17 +43,17 @@ class TDA(Database):
 
     def connect(self) -> bool:
         self.logger.info(
-            f"Connecting {self.user.name} to TDAmeritrade - ({Helper.modifiedAccountID(self.accountId)})", extra={'log': False})
+            f"Connecting {self.user.name} to TDAmeritrade - ({Helper.modifiedAccountID(self.accountId)})", log=False)
 
         isValid = self.__checkTokenValidity()
 
         if isValid:
             self.logger.info(
-                f"Connected {self.user.name} to TDAmeritrade - ({Helper.modifiedAccountID(self.accountId)})", extra={'log': False})
+                f"Connected {self.user.name} to TDAmeritrade - ({Helper.modifiedAccountID(self.accountId)})", log=False)
             return True
         else:
             self.logger.error(
-                f"Failed to connect {self.user.name} to TDAmeritrade - ({Helper.modifiedAccountID(self.accountId)})", extra={'log': False})
+                f"Failed to connect {self.user.name} to TDAmeritrade - ({Helper.modifiedAccountID(self.accountId)})", log=False)
             return False
 
     def __checkTokenValidity(self) -> bool:

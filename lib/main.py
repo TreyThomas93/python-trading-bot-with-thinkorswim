@@ -1,12 +1,7 @@
 
-
-from logging import Formatter
-import logging
-import os
 import time
+from src.services.logger import LoggerService
 from src.utils.helper import Helper
-from src.utils.multifilehandler import MultiFileHandler
-from src.utils.formatter import Formatter
 from src.services.tda import TDA
 from src.models.user_model import User
 from src.services.database import Database
@@ -19,18 +14,7 @@ class Main(Database):
     def __init__(self) -> None:
         super().__init__()
 
-        file_handler = MultiFileHandler(
-            filename=f'{os.path.abspath(os.path.dirname(__file__))}/src/utils/logs/info.log', mode='a')
-        formatter = Formatter('%(asctime)s [%(levelname)s] %(message)s')
-        file_handler.setFormatter(formatter)
-        ch = logging.StreamHandler()
-        ch.setLevel(level="INFO")
-        ch.setFormatter(formatter)
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(level="INFO")
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(ch)
-
+        self.logger = LoggerService()
         self.gmail = Gmail(self.logger)
 
         self.usersToTrade = {}

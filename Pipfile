@@ -18,6 +18,7 @@ requests = "*"
 webdriver-manager = "*"
 selenium = "*"
 python-dotenv = "*"
+termcolor = "*"
 
 [requires]
 python_version = "3.10"

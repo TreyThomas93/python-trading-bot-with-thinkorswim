@@ -38,7 +38,7 @@ class Gmail:
 
     def connect(self) -> bool:
         try:
-            self.logger.info("Connecting to gmail...", extra={'log': False})
+            self.logger.info("Connecting to gmail...", log=False)
 
             if not os.path.exists(self.credentialsFile):
                 raise Exception("credentials.json file not found.")
@@ -62,7 +62,7 @@ class Gmail:
 
                 self.service = build(
                     'gmail', 'v1', credentials=self.credentials)
-                self.logger.info("Connected to gmail.\n", extra={'log': False})
+                self.logger.info("Connected to gmail.\n", log=False)
 
                 return True
 
